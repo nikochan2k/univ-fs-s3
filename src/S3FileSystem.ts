@@ -2,6 +2,7 @@ import {
   CopyObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  HeadObjectCommandOutput,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -14,7 +15,6 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
-  getParentPath,
   getPathParts,
   HeadOptions,
   NoModificationAllowedError,
@@ -44,7 +44,7 @@ export class S3FileSystem extends AbstractFileSystem {
     options?: FileSystemOptions
   ) {
     super(repository, options);
-    this.s3 = new S3Client(config);
+    this.s3 = new S3Client({ ...config });
   }
 
   public _createCommand(path: string): Command {
@@ -81,41 +81,48 @@ export class S3FileSystem extends AbstractFileSystem {
     return this._getKey(path) + "/";
   }
 
+  private handleHead(data: HeadObjectCommandOutput) {
+    const metadata = { ...data.Metadata };
+    const created = parseInt(metadata["created"]!);
+    const deleted = parseInt(metadata["deleted"]!);
+    return {
+      created: created || undefined,
+      modified: data.LastModified?.getTime(),
+      deleted: deleted || undefined,
+      size: data.ContentLength,
+    } as Stats;
+  }
+
   public async _head(path: string, _options: HeadOptions): Promise<Stats> {
-    let err: any;
-    try {
-      const cmd = new HeadObjectCommand(this._createCommand(path));
-      const data = await this.s3.send(cmd);
-      const metadata = { ...data.Metadata };
-      const created = parseInt(metadata["created"]!);
-      const deleted = parseInt(metadata["deleted"]!);
-      return {
-        created: created || undefined,
-        modified: data.LastModified?.getTime(),
-        deleted: deleted || undefined,
-        size: data.ContentLength,
-      };
-    } catch (e) {
-      err = this._error(path, e, true);
-      if (err.name !== NotFoundError.name) {
-        throw err;
-      }
-    }
-    try {
-      const cmd = new ListObjectsV2Command({
-        Bucket: this.bucket,
-        Delimiter: "/",
-        Prefix: this._getPrefix(getParentPath(path)),
-        MaxKeys: 1,
-      });
-      const data = await this.s3.send(cmd);
-      const contents = data.Contents;
-      if (contents && 0 < contents.length) {
-        return {};
-      }
-      throw err;
-    } catch (e) {
-      throw this._error(path, e, true);
+    const fileHeadCmd = new HeadObjectCommand(this._createCommand(path));
+    const dirHeadCmd = new HeadObjectCommand({
+      Bucket: this.bucket,
+      Key: this._getKey(path) + "/",
+    });
+    const dirListCmd = new ListObjectsV2Command({
+      Bucket: this.bucket,
+      Delimiter: "/",
+      Prefix: this._getPrefix(path),
+      MaxKeys: 1,
+    });
+    const fileHead = this.s3.send(fileHeadCmd);
+    const dirHead = this.s3.send(dirHeadCmd);
+    const dirList = this.s3.send(dirListCmd);
+    const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
+      fileHead,
+      dirHead,
+      dirList,
+    ]);
+    if (fileHeadRes.status === "fulfilled") {
+      return this.handleHead(fileHeadRes.value);
+    } else if (dirHeadRes.status === "fulfilled") {
+      const stats = this.handleHead(dirHeadRes.value);
+      delete stats.size;
+      return stats;
+    } else if (dirListRes.status === "fulfilled") {
+      return {};
+    } else {
+      throw this._error(path, fileHeadRes.reason, true);
     }
   }
 

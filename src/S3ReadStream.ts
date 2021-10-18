@@ -11,18 +11,16 @@ import { convertError } from "./S3FileSystem";
 export class S3ReadStream extends AbstractReadStream {
   private readStream?: fs.ReadStream;
 
-  constructor(private nodeFile: S3File, options: OpenReadOptions) {
-    super(nodeFile, options);
+  constructor(private s3File: S3File, options: OpenReadOptions) {
+    super(s3File, options);
   }
 
-  public async _close(): Promise<void> {
-    this._destory();
-  }
+  public async _close(): Promise<void> {}
 
   public _read(size?: number): Promise<Source | null> {
     const readStream = this._buildReadStream();
     return new Promise<Source | null>((resolve, reject) => {
-      const nodeFile = this.nodeFile;
+      const nodeFile = this.s3File;
       const onError = (err: Error) => {
         reject(convertError(nodeFile.fs.repository, nodeFile.path, err, false));
         this._destory();
@@ -64,7 +62,7 @@ export class S3ReadStream extends AbstractReadStream {
       }
     }
 
-    const nodeFile = this.nodeFile;
+    const nodeFile = this.s3File;
     const repository = nodeFile.fs.repository;
     const path = nodeFile.path;
     try {
