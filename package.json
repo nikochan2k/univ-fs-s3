@@ -1,0 +1,64 @@
+{
+  "name": "univ-fs-s3",
+  "version": "0.1.0",
+  "description": "Isomorphic Filesystem for S3",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "keywords": [
+    "fs",
+    "filesystem",
+    "storage",
+    "isomorphic",
+    "universal",
+    "s3"
+  ],
+  "scripts": {
+    "clean": "rimraf ./lib",
+    "compile": "tsc",
+    "build": "npm-run-all clean compile",
+    "npm-version": "npm version patch",
+    "npm-publish": "npm publish",
+    "release": "npm-run-all clean compile npm-version npm-publish",
+    "test": "jest --runInBand"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "ts",
+      "tsx"
+    ],
+    "transform": {
+      "^.+\\.(ts|tsx)$": "ts-jest"
+    },
+    "globals": {
+      "ts-jest": {
+        "tsconfig": "tsconfig.json"
+      }
+    },
+    "testMatch": [
+      "<rootDir>/src/__tests__/**/*.spec.+(ts|tsx|js)"
+    ],
+    "preset": "ts-jest"
+  },
+  "devDependencies": {
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.1",
+    "jest": "^27.3.0",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^27.0.7",
+    "typescript": "^4.4.4"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.37.0",
+    "@aws-sdk/s3-request-presigner": "^3.37.0",
+    "tslib": "^2.3.1",
+    "univ-fs": "^0.1.25"
+  },
+  "author": "Yoshihiro Seki",
+  "license": "MIT"
+}
