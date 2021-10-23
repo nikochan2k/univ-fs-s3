@@ -11,7 +11,7 @@ import { S3ReadStream } from "./S3ReadStream";
 import { S3WriteStream } from "./S3WriteStream";
 
 export class S3File extends AbstractFile {
-  constructor(private s3FS: S3FileSystem, path: string) {
+  constructor(public s3FS: S3FileSystem, path: string) {
     super(s3FS, path);
   }
 
