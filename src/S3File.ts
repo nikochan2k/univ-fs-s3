@@ -3,14 +3,13 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
 import {
   Converter,
   Data,
-  hasReadableStream,
   isBlob,
   isBuffer,
-  isNode,
   isReadable,
   isReadableStream,
   isReadableStreamData,
@@ -73,12 +72,12 @@ export class S3File extends AbstractFile {
     }
     let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
     if (head) {
-      if (typeof head === "string") {
-        body = await converter.merge([head, data], "UTF8");
-      } else if (isReadable(head) || isNode) {
+      if (isReadable(head) || isReadable(data)) {
         body = await converter.merge([head, data], "Readable");
-      } else if (isReadableStream(head) || hasReadableStream) {
+      } else if (isReadableStream(head) || isReadable(data)) {
         body = await converter.merge([head, data], "ReadableStream");
+      } else if (typeof head === "string" && typeof data === "string") {
+        body = await converter.merge([head, data], "UTF8");
       } else {
         body = await converter.merge([head, data], "Uint8Array");
       }
@@ -95,18 +94,25 @@ export class S3File extends AbstractFile {
       }
     }
 
-    let length: number | undefined;
-    if (!isReadableStreamData(data)) {
-      length = await converter.getSize(body);
-    }
-
     try {
-      const cmd = new PutObjectCommand({
-        ...s3fs._createCommand(path),
-        Body: body,
-        ContentLength: length,
-      });
-      await s3fs.s3.send(cmd);
+      if (isReadableStreamData(body)) {
+        const upload = new Upload({
+          client: s3fs.s3,
+          params: {
+            ...s3fs._createCommand(path),
+            Body: body,
+          },
+        });
+        await upload.done();
+      } else {
+        const length = await converter.getSize(body);
+        const cmd = new PutObjectCommand({
+          ...s3fs._createCommand(path),
+          Body: body,
+          ContentLength: length,
+        });
+        await s3fs.s3.send(cmd);
+      }
     } catch (e) {
       throw s3fs._error(path, e, false);
     }

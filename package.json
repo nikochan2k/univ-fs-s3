@@ -60,9 +60,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.39.0",
+    "@aws-sdk/lib-storage": "^3.39.0",
     "@aws-sdk/s3-request-presigner": "^3.39.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.4.3"
+    "univ-fs": "^0.4.6"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
