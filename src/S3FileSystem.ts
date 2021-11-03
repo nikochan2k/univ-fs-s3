@@ -169,24 +169,21 @@ export class S3FileSystem extends AbstractFileSystem {
   }
 
   private _handleHead(data: HeadObjectCommandOutput, isFile: boolean) {
-    const metadata = { ...data.Metadata };
-    let created: number | undefined;
-    if (metadata["created"]) {
-      created = parseInt(metadata["created"]);
-    }
-    let deleted: number | undefined;
-    if (metadata["deleted"]) {
-      deleted = parseInt(metadata["deleted"]);
-    }
     let size: number | undefined;
     if (isFile) {
       size = data.ContentLength;
     }
-    return {
-      created: created || undefined,
+    const stats: Stats = {
       modified: data.LastModified?.getTime(),
-      deleted: deleted || undefined,
       size,
-    } as Stats;
+    };
+    for (const [key, value] of Object.entries(data.Metadata ?? {})) {
+      if (key === "modified" || key === "size") {
+        continue;
+      }
+      stats[key] = value;
+    }
+
+    return stats;
   }
 }
