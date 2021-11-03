@@ -16,7 +16,6 @@ import {
   createError,
   FileSystemOptions,
   getPathParts,
-  HeadOptions,
   NoModificationAllowedError,
   NotFoundError,
   NotReadableError,
@@ -38,8 +37,8 @@ export class S3FileSystem extends AbstractFileSystem {
   public s3: S3Client;
 
   constructor(
-    repository: string,
     public bucket: string,
+    repository: string,
     config: S3ClientConfig,
     options?: FileSystemOptions
   ) {
@@ -55,9 +54,12 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
-  public _error(path: string, e: any, read: boolean) {
+  public _error(path: string, e: unknown, read: boolean) {
     let name: string;
-    if (e.name === "NotFound" || e.$metadata?.httpStatusCode === 404) {
+    if (
+      (e as any).name === "NotFound" || // eslint-disable-line
+      (e as any).$metadata?.httpStatusCode === 404 // eslint-disable-line
+    ) {
       name = NotFoundError.name;
     } else if (read) {
       name = NotReadableError.name;
@@ -68,7 +70,7 @@ export class S3FileSystem extends AbstractFileSystem {
       name,
       repository: this.repository,
       path,
-      e,
+      e: e as any, // eslint-disable-line
     });
   }
 
@@ -81,19 +83,7 @@ export class S3FileSystem extends AbstractFileSystem {
     return this._getKey(path) + "/";
   }
 
-  private handleHead(data: HeadObjectCommandOutput) {
-    const metadata = { ...data.Metadata };
-    const created = parseInt(metadata["created"]!);
-    const deleted = parseInt(metadata["deleted"]!);
-    return {
-      created: created || undefined,
-      modified: data.LastModified?.getTime(),
-      deleted: deleted || undefined,
-      size: data.ContentLength,
-    } as Stats;
-  }
-
-  public async _head(path: string, _options: HeadOptions): Promise<Stats> {
+  public async _head(path: string): Promise<Stats> {
     const fileHeadCmd = new HeadObjectCommand(this._createCommand(path));
     const dirHeadCmd = new HeadObjectCommand({
       Bucket: this.bucket,
@@ -114,30 +104,37 @@ export class S3FileSystem extends AbstractFileSystem {
       dirList,
     ]);
     if (fileHeadRes.status === "fulfilled") {
-      return this.handleHead(fileHeadRes.value);
+      return this._handleHead(fileHeadRes.value, true);
     } else if (dirHeadRes.status === "fulfilled") {
-      const stats = this.handleHead(dirHeadRes.value);
+      const stats = this._handleHead(dirHeadRes.value, false);
       delete stats.size;
       return stats;
-    } else if (dirListRes.status === "fulfilled") {
-      return {};
-    } else {
-      throw this._error(path, fileHeadRes.reason, true);
     }
+    if (dirListRes.status === "fulfilled") {
+      const res = dirListRes.value;
+      if (res.Contents || res.CommonPrefixes) {
+        return {};
+      }
+    }
+    throw this._error(path, fileHeadRes.reason, true);
   }
 
   public async _patch(
     path: string,
     props: Props,
-    _options: PatchOptions
+    _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
+    const metadata: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(props)) {
+      metadata[key] = "" + value; // eslint-disable-line
+    }
     const key = this._getKey(path);
     try {
       const cmd = new CopyObjectCommand({
         Bucket: this.bucket,
         CopySource: this.bucket + "/" + key,
         Key: key,
-        Metadata: props,
+        Metadata: metadata,
       });
       await this.s3.send(cmd);
     } catch (e) {
@@ -146,11 +143,11 @@ export class S3FileSystem extends AbstractFileSystem {
   }
 
   public async getDirectory(path: string): Promise<AbstractDirectory> {
-    return new S3Directory(this, path);
+    return Promise.resolve(new S3Directory(this, path));
   }
 
   public async getFile(path: string): Promise<AbstractFile> {
-    return new S3File(this, path);
+    return Promise.resolve(new S3File(this, path));
   }
 
   public toURL(path: string, urlType?: URLType): Promise<string> {
@@ -159,7 +156,7 @@ export class S3FileSystem extends AbstractFileSystem {
         name: NotSupportedError.name,
         repository: this.repository,
         path,
-        e: '"DELETE" is not supported',
+        e: { message: '"DELETE" is not supported' },
       });
     }
     if (urlType === "GET") {
@@ -169,5 +166,27 @@ export class S3FileSystem extends AbstractFileSystem {
       const cmd = new PutObjectCommand(this._createCommand(path));
       return getSignedUrl(this.s3, cmd);
     }
+  }
+
+  private _handleHead(data: HeadObjectCommandOutput, isFile: boolean) {
+    const metadata = { ...data.Metadata };
+    let created: number | undefined;
+    if (metadata["created"]) {
+      created = parseInt(metadata["created"]);
+    }
+    let deleted: number | undefined;
+    if (metadata["deleted"]) {
+      deleted = parseInt(metadata["deleted"]);
+    }
+    let size: number | undefined;
+    if (isFile) {
+      size = data.ContentLength;
+    }
+    return {
+      created: created || undefined,
+      modified: data.LastModified?.getTime(),
+      deleted: deleted || undefined,
+      size,
+    } as Stats;
   }
 }
