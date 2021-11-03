@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-s3",
-  "version": "0.3.2",
+  "version": "0.5.0",
   "description": "The universal Filesystem API for S3",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -63,7 +63,7 @@
     "@aws-sdk/lib-storage": "^3.39.0",
     "@aws-sdk/s3-request-presigner": "^3.39.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.5.1"
+    "univ-fs": "^0.5.2"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

@@ -1,5 +1,6 @@
 import {
   CopyObjectCommand,
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   HeadObjectCommandOutput,
@@ -23,7 +24,7 @@ import {
   PatchOptions,
   Props,
   Stats,
-  URLType,
+  URLOptions,
 } from "univ-fs";
 import { S3Directory } from "./S3Directory";
 import { S3File } from "./S3File";
@@ -112,7 +113,10 @@ export class S3FileSystem extends AbstractFileSystem {
     }
     if (dirListRes.status === "fulfilled") {
       const res = dirListRes.value;
-      if (res.Contents || res.CommonPrefixes) {
+      if (
+        (res.Contents && 0 < res.Contents.length) ||
+        (res.CommonPrefixes && 0 < res.CommonPrefixes.length)
+      ) {
         return {};
       }
     }
@@ -150,21 +154,29 @@ export class S3FileSystem extends AbstractFileSystem {
     return Promise.resolve(new S3File(this, path));
   }
 
-  public toURL(path: string, urlType?: URLType): Promise<string> {
-    if (urlType === "DELETE") {
-      throw createError({
-        name: NotSupportedError.name,
-        repository: this.repository,
-        path,
-        e: { message: '"DELETE" is not supported' },
-      });
-    }
-    if (urlType === "GET") {
-      const cmd = new GetObjectCommand(this._createCommand(path));
-      return getSignedUrl(this.s3, cmd);
-    } else {
-      const cmd = new PutObjectCommand(this._createCommand(path));
-      return getSignedUrl(this.s3, cmd);
+  public toURL(path: string, options?: URLOptions): Promise<string> {
+    options = { urlType: "GET", expires: 86400, ...options };
+    switch (options.urlType) {
+      case "GET": {
+        const cmd = new GetObjectCommand(this._createCommand(path));
+        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+      }
+      case "PUT":
+      case "POST": {
+        const cmd = new PutObjectCommand(this._createCommand(path));
+        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+      }
+      case "DELETE": {
+        const cmd = new DeleteObjectCommand(this._createCommand(path));
+        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+      }
+      default:
+        throw createError({
+          name: NotSupportedError.name,
+          repository: this.repository,
+          path,
+          e: { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
+        });
     }
   }
 
