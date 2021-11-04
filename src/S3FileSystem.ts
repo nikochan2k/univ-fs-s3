@@ -76,6 +76,9 @@ export class S3FileSystem extends AbstractFileSystem {
   }
 
   public _getKey(path: string) {
+    if (!path || path === "/") {
+      return this.repository;
+    }
     const parts = getPathParts(this.repository + "/" + path);
     return parts.join("/");
   }

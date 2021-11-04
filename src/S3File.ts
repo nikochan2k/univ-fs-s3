@@ -60,41 +60,41 @@ export class S3File extends AbstractFile {
     const path = this.path;
     const converter = new Converter(options);
 
-    let head: Data | undefined;
-    if (options.append) {
-      try {
-        head = await this._load(options);
-      } catch (e: unknown) {
-        if ((e as ErrorLike).name !== NotFoundError.name) {
-          throw e;
+    try {
+      let head: Data | undefined;
+      if (options.append) {
+        try {
+          head = await this._load(options);
+        } catch (e: unknown) {
+          if ((e as ErrorLike).name !== NotFoundError.name) {
+            throw e;
+          }
         }
       }
-    }
-    let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
-    if (head) {
-      if (isReadable(head) || isReadable(data)) {
-        body = await converter.merge([head, data], "Readable");
-      } else if (isReadableStream(head) || isReadable(data)) {
-        body = await converter.merge([head, data], "ReadableStream");
-      } else if (typeof head === "string" && typeof data === "string") {
-        body = await converter.merge([head, data], "UTF8");
+      let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
+      if (head) {
+        if (isReadable(head) || isReadable(data)) {
+          body = await converter.merge([head, data], "Readable");
+        } else if (isReadableStream(head) || isReadable(data)) {
+          body = await converter.merge([head, data], "ReadableStream");
+        } else if (typeof head === "string" && typeof data === "string") {
+          body = await converter.merge([head, data], "UTF8");
+        } else {
+          body = await converter.merge([head, data], "Uint8Array");
+        }
       } else {
-        body = await converter.merge([head, data], "Uint8Array");
+        if (
+          typeof data === "string" ||
+          isBlob(data) ||
+          isBuffer(data) ||
+          isReadableStreamData(data)
+        ) {
+          body = data;
+        } else {
+          body = await converter.toUint8Array(data);
+        }
       }
-    } else {
-      if (
-        typeof data === "string" ||
-        isBlob(data) ||
-        isBuffer(data) ||
-        isReadableStreamData(data)
-      ) {
-        body = data;
-      } else {
-        body = await converter.toUint8Array(data);
-      }
-    }
 
-    try {
       if (isReadableStreamData(body)) {
         const upload = new Upload({
           client: s3fs.s3,
