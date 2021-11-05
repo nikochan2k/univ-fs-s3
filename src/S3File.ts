@@ -16,7 +16,6 @@ import {
 } from "univ-conv";
 import {
   AbstractFile,
-  ErrorLike,
   NotFoundError,
   OpenOptions,
   WriteOptions,
