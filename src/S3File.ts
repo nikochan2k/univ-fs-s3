@@ -34,7 +34,8 @@ export class S3File extends AbstractFile {
 
     try {
       const cmd = new DeleteObjectCommand(s3fs._createCommand(path));
-      await s3fs.s3.send(cmd);
+      const client = await s3fs._getClient();
+      await client.send(cmd);
     } catch (e) {
       throw s3fs._error(path, e, false);
     }
@@ -48,7 +49,8 @@ export class S3File extends AbstractFile {
     const cmd = new GetObjectCommand(s3fs._createCommand(path));
 
     try {
-      const obj = await s3fs.s3.send(cmd);
+      const client = await s3fs._getClient();
+      const obj = await client.send(cmd);
       return obj.Body || "";
     } catch (e) {
       throw s3fs._error(path, e, true);
@@ -66,7 +68,8 @@ export class S3File extends AbstractFile {
         try {
           head = await this._load(options);
         } catch (e: unknown) {
-          if ((e as ErrorLike).name !== NotFoundError.name) {
+          const err = s3fs._error(path, e, true);
+          if (err.name !== NotFoundError.name) {
             throw e;
           }
         }
@@ -95,9 +98,10 @@ export class S3File extends AbstractFile {
         }
       }
 
+      const client = await s3fs._getClient();
       if (isReadableStreamData(body)) {
         const upload = new Upload({
-          client: s3fs.s3,
+          client,
           params: {
             ...s3fs._createCommand(path),
             Body: body,
@@ -111,7 +115,7 @@ export class S3File extends AbstractFile {
           Body: body,
           ContentLength: length,
         });
-        await s3fs.s3.send(cmd);
+        await client.send(cmd);
       }
     } catch (e) {
       throw s3fs._error(path, e, false);

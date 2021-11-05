@@ -3,9 +3,11 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  HeadObjectCommandInput,
   HeadObjectCommandOutput,
   ListObjectsV2Command,
   PutObjectCommand,
+  PutObjectCommandInput,
   S3Client,
   S3ClientConfig,
 } from "@aws-sdk/client-s3";
@@ -35,16 +37,15 @@ export interface Command {
 }
 
 export class S3FileSystem extends AbstractFileSystem {
-  public s3: S3Client;
+  private client?: S3Client;
 
   constructor(
     public bucket: string,
     repository: string,
-    config: S3ClientConfig,
+    private config: S3ClientConfig,
     options?: FileSystemOptions
   ) {
     super(repository, options);
-    this.s3 = new S3Client({ ...config });
   }
 
   public _createCommand(path: string): Command {
@@ -75,6 +76,36 @@ export class S3FileSystem extends AbstractFileSystem {
     });
   }
 
+  public async _getClient() {
+    if (this.client) {
+      return this.client;
+    }
+
+    this.client = new S3Client({ ...this.config });
+    const input: HeadObjectCommandInput | PutObjectCommandInput = {
+      Bucket: this.bucket,
+      Key: this._getKey("/") + "/",
+      Body: "",
+    };
+    try {
+      const headCmd = new HeadObjectCommand(input);
+      await this.client.send(headCmd);
+      return this.client;
+    } catch (e: unknown) {
+      const err = this._error("/", e, false);
+      if (err.name !== NotFoundError.name) {
+        throw err;
+      }
+    }
+    const putCmd = new PutObjectCommand(input);
+    try {
+      await this.client.send(putCmd);
+      return this.client;
+    } catch (e) {
+      throw this._error("/", e, false);
+    }
+  }
+
   public _getKey(path: string) {
     if (!path || path === "/") {
       return this.repository;
@@ -99,9 +130,10 @@ export class S3FileSystem extends AbstractFileSystem {
       Prefix: this._getPrefix(path),
       MaxKeys: 1,
     });
-    const fileHead = this.s3.send(fileHeadCmd);
-    const dirHead = this.s3.send(dirHeadCmd);
-    const dirList = this.s3.send(dirListCmd);
+    const client = await this._getClient();
+    const fileHead = client.send(fileHeadCmd);
+    const dirHead = client.send(dirHeadCmd);
+    const dirList = client.send(dirListCmd);
     const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
       fileHead,
       dirHead,
@@ -143,7 +175,8 @@ export class S3FileSystem extends AbstractFileSystem {
         Key: key,
         Metadata: metadata,
       });
-      await this.s3.send(cmd);
+      const client = await this._getClient();
+      await client.send(cmd);
     } catch (e) {
       throw this._error(path, e, false);
     }
@@ -157,21 +190,22 @@ export class S3FileSystem extends AbstractFileSystem {
     return Promise.resolve(new S3File(this, path));
   }
 
-  public toURL(path: string, options?: URLOptions): Promise<string> {
+  public async toURL(path: string, options?: URLOptions): Promise<string> {
     options = { urlType: "GET", expires: 86400, ...options };
+    const client = await this._getClient();
     switch (options.urlType) {
       case "GET": {
         const cmd = new GetObjectCommand(this._createCommand(path));
-        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+        return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       case "PUT":
       case "POST": {
         const cmd = new PutObjectCommand(this._createCommand(path));
-        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+        return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       case "DELETE": {
         const cmd = new DeleteObjectCommand(this._createCommand(path));
-        return getSignedUrl(this.s3, cmd, { expiresIn: options.expires });
+        return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       default:
         throw createError({

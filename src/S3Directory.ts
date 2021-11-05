@@ -8,12 +8,12 @@ import { AbstractDirectory, joinPaths, NotFoundError } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3Directory extends AbstractDirectory {
-  constructor(private s3FS: S3FileSystem, path: string) {
-    super(s3FS, path);
+  constructor(private s3fs: S3FileSystem, path: string) {
+    super(s3fs, path);
   }
 
   public async _list(): Promise<string[]> {
-    const s3FS = this.s3FS;
+    const s3FS = this.s3fs;
     const path = this.path;
     const objects: string[] = [];
     try {
@@ -36,31 +36,33 @@ export class S3Directory extends AbstractDirectory {
   }
 
   public async _mkcol(): Promise<void> {
-    const s3FS = this.s3FS;
+    const s3fs = this.s3fs;
     const path = this.path;
     const cmd = new PutObjectCommand({
-      Bucket: s3FS.bucket,
-      Key: s3FS._getKey(path) + "/",
+      Bucket: s3fs.bucket,
+      Key: s3fs._getKey(path) + "/",
       Body: "",
     });
     try {
-      await s3FS.s3.send(cmd);
+      const client = await s3fs._getClient();
+      await client.send(cmd);
     } catch (e) {
-      throw s3FS._error(path, e, false);
+      throw s3fs._error(path, e, false);
     }
   }
 
   public async _rmdir(): Promise<void> {
-    const s3FS = this.s3FS;
+    const s3fs = this.s3fs;
     const path = this.path;
     const cmd = new DeleteObjectCommand({
-      Bucket: s3FS.bucket,
-      Key: s3FS._getKey(path) + "/",
+      Bucket: s3fs.bucket,
+      Key: s3fs._getKey(path) + "/",
     });
     try {
-      await s3FS.s3.send(cmd);
+      const client = await s3fs._getClient();
+      await client.send(cmd);
     } catch (e) {
-      throw s3FS._error(path, e, false);
+      throw s3fs._error(path, e, false);
     }
   }
 
@@ -69,7 +71,8 @@ export class S3Directory extends AbstractDirectory {
     objects: string[]
   ) {
     const cmd = new ListObjectsV2Command(params);
-    const data = await this.s3FS.s3.send(cmd);
+    const client = await this.s3fs._getClient();
+    const data = await client.send(cmd);
     // Directories
     for (const content of data.CommonPrefixes || []) {
       if (content.Prefix) {
