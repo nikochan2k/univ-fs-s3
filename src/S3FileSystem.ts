@@ -187,39 +187,48 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
+  public async _toURL(path: string, options?: URLOptions): Promise<string> {
+    try {
+      options = { urlType: "GET", expires: 86400, ...options };
+      const client = await this._getClient();
+      let url: string;
+      switch (options.urlType) {
+        case "GET": {
+          const cmd = new GetObjectCommand(this._createCommand(path, false));
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        case "PUT":
+        case "POST": {
+          const cmd = new PutObjectCommand(this._createCommand(path, false));
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        case "DELETE": {
+          const cmd = new DeleteObjectCommand(this._createCommand(path, false));
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        default:
+          throw createError({
+            name: NotSupportedError.name,
+            repository: this.repository,
+            path,
+            e: { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
+          });
+      }
+      return url;
+    } catch (e) {
+      throw this._error(path, e, false);
+    }
+  }
+
   public async getDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new S3Directory(this, path));
   }
 
   public async getFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new S3File(this, path));
-  }
-
-  public async toURL(path: string, options?: URLOptions): Promise<string> {
-    options = { urlType: "GET", expires: 86400, ...options };
-    const client = await this._getClient();
-    switch (options.urlType) {
-      case "GET": {
-        const cmd = new GetObjectCommand(this._createCommand(path, false));
-        return getSignedUrl(client, cmd, { expiresIn: options.expires });
-      }
-      case "PUT":
-      case "POST": {
-        const cmd = new PutObjectCommand(this._createCommand(path, false));
-        return getSignedUrl(client, cmd, { expiresIn: options.expires });
-      }
-      case "DELETE": {
-        const cmd = new DeleteObjectCommand(this._createCommand(path, false));
-        return getSignedUrl(client, cmd, { expiresIn: options.expires });
-      }
-      default:
-        throw createError({
-          name: NotSupportedError.name,
-          repository: this.repository,
-          path,
-          e: { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
-        });
-    }
   }
 
   private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
