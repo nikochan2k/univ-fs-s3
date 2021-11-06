@@ -36,7 +36,7 @@ export class S3File extends AbstractFile {
       const client = await s3fs._getClient();
       await client.send(cmd);
     } catch (e) {
-      throw s3fs._error(path, e, false);
+      throw s3fs._error(path, e, true);
     }
   }
 
@@ -52,7 +52,7 @@ export class S3File extends AbstractFile {
       const obj = await client.send(cmd);
       return obj.Body || "";
     } catch (e) {
-      throw s3fs._error(path, e, true);
+      throw s3fs._error(path, e, false);
     }
   }
 
@@ -67,7 +67,7 @@ export class S3File extends AbstractFile {
         try {
           head = await this._load(options);
         } catch (e: unknown) {
-          const err = s3fs._error(path, e, true);
+          const err = s3fs._error(path, e, false);
           if (err.name !== NotFoundError.name) {
             throw e;
           }
@@ -117,7 +117,7 @@ export class S3File extends AbstractFile {
         await client.send(cmd);
       }
     } catch (e) {
-      throw s3fs._error(path, e, false);
+      throw s3fs._error(path, e, true);
     }
   }
 }

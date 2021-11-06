@@ -56,17 +56,17 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
-  public _error(path: string, e: unknown, read: boolean) {
+  public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     if (
       (e as any).name === "NotFound" || // eslint-disable-line
       (e as any).$metadata?.httpStatusCode === 404 // eslint-disable-line
     ) {
       name = NotFoundError.name;
-    } else if (read) {
-      name = NotReadableError.name;
-    } else {
+    } else if (write) {
       name = NoModificationAllowedError.name;
+    } else {
+      name = NotReadableError.name;
     }
     return createError({
       name,
@@ -102,7 +102,7 @@ export class S3FileSystem extends AbstractFileSystem {
       await this.client.send(putCmd);
       return this.client;
     } catch (e) {
-      throw this._error("/", e, false);
+      throw this._error("/", e, true);
     }
   }
 
@@ -156,7 +156,7 @@ export class S3FileSystem extends AbstractFileSystem {
         return {};
       }
     }
-    throw this._error(path, fileHeadRes.reason, true);
+    throw this._error(path, fileHeadRes.reason, false);
   }
 
   public async _patch(
@@ -179,7 +179,7 @@ export class S3FileSystem extends AbstractFileSystem {
       const client = await this._getClient();
       await client.send(cmd);
     } catch (e) {
-      throw this._error(path, e, false);
+      throw this._error(path, e, true);
     }
   }
 
@@ -218,24 +218,6 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  protected override _fixProps(props: Props, stats: Stats) {
-    if (props["size"]) {
-      delete props["size"];
-    }
-    if (props["etag"]) {
-      delete props["etag"];
-    }
-    if (props["modified"]) {
-      delete props["modified"];
-    }
-    if (!props["accessed"] && stats.accessed) {
-      props["accessed"] = stats.accessed;
-    }
-    if (!props["created"] && stats.created) {
-      props["created"] = stats.created;
-    }
-  }
-
   private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
     const stats: Stats = {};
     if (!isDirectory) {
@@ -248,7 +230,7 @@ export class S3FileSystem extends AbstractFileSystem {
       stats.etag = data.ETag;
     }
     for (const [key, value] of Object.entries(data.Metadata ?? {})) {
-      if (key === "modified" || key === "size" || key === "etag") {
+      if (key === "size" || key === "etag") {
         continue;
       }
       stats[key] = value;

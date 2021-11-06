@@ -27,7 +27,7 @@ export class S3Directory extends AbstractDirectory {
       );
       return objects;
     } catch (e) {
-      const err = s3FS._error(path, e, true);
+      const err = s3FS._error(path, e, false);
       if (err.name === NotFoundError.name) {
         return objects;
       }
@@ -47,7 +47,7 @@ export class S3Directory extends AbstractDirectory {
       const client = await s3fs._getClient();
       await client.send(cmd);
     } catch (e) {
-      throw s3fs._error(path, e, false);
+      throw s3fs._error(path, e, true);
     }
   }
 
@@ -62,7 +62,7 @@ export class S3Directory extends AbstractDirectory {
       const client = await s3fs._getClient();
       await client.send(cmd);
     } catch (e) {
-      throw s3fs._error(path, e, false);
+      throw s3fs._error(path, e, true);
     }
   }
 
