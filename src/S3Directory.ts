@@ -21,7 +21,7 @@ export class S3Directory extends AbstractDirectory {
         {
           Bucket: s3FS.bucket,
           Delimiter: "/",
-          Prefix: s3FS._getPrefix(path),
+          Prefix: s3FS._getKey(path, true),
         },
         objects
       );
@@ -40,7 +40,7 @@ export class S3Directory extends AbstractDirectory {
     const path = this.path;
     const cmd = new PutObjectCommand({
       Bucket: s3fs.bucket,
-      Key: s3fs._getKey(path) + "/",
+      Key: s3fs._getKey(path, true),
       Body: "",
     });
     try {
@@ -56,7 +56,7 @@ export class S3Directory extends AbstractDirectory {
     const path = this.path;
     const cmd = new DeleteObjectCommand({
       Bucket: s3fs.bucket,
-      Key: s3fs._getKey(path) + "/",
+      Key: s3fs._getKey(path, true),
     });
     try {
       const client = await s3fs._getClient();

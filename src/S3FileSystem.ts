@@ -18,7 +18,7 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
-  getPathParts,
+  joinPaths,
   NoModificationAllowedError,
   NotFoundError,
   NotReadableError,
@@ -48,8 +48,8 @@ export class S3FileSystem extends AbstractFileSystem {
     super(repository, options);
   }
 
-  public _createCommand(path: string): Command {
-    const key = this._getKey(path);
+  public _createCommand(path: string, isDirectory: boolean): Command {
+    const key = this._getKey(path, isDirectory);
     return {
       Bucket: this.bucket,
       Key: key,
@@ -84,7 +84,7 @@ export class S3FileSystem extends AbstractFileSystem {
     this.client = new S3Client({ ...this.config });
     const input: HeadObjectCommandInput | PutObjectCommandInput = {
       Bucket: this.bucket,
-      Key: this._getKey("/") + "/",
+      Key: this._getKey("/", true),
       Body: "",
     };
     try {
@@ -106,28 +106,29 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public _getKey(path: string) {
+  public _getKey(path: string, isDirectory: boolean) {
+    let key: string;
     if (!path || path === "/") {
-      return this.repository;
+      key = this.repository;
+    } else {
+      key = joinPaths(this.repository, path);
     }
-    const parts = getPathParts(this.repository + "/" + path);
-    return parts.join("/");
-  }
-
-  public _getPrefix(path: string) {
-    return this._getKey(path) + "/";
+    if (isDirectory) {
+      key += "/";
+    }
+    return key;
   }
 
   public async _head(path: string): Promise<Stats> {
-    const fileHeadCmd = new HeadObjectCommand(this._createCommand(path));
+    const fileHeadCmd = new HeadObjectCommand(this._createCommand(path, false));
     const dirHeadCmd = new HeadObjectCommand({
       Bucket: this.bucket,
-      Key: this._getKey(path) + "/",
+      Key: this._getKey(path, true),
     });
     const dirListCmd = new ListObjectsV2Command({
       Bucket: this.bucket,
       Delimiter: "/",
-      Prefix: this._getPrefix(path),
+      Prefix: this._getKey(path, true),
       MaxKeys: 1,
     });
     const client = await this._getClient();
@@ -140,9 +141,9 @@ export class S3FileSystem extends AbstractFileSystem {
       dirList,
     ]);
     if (fileHeadRes.status === "fulfilled") {
-      return this._handleHead(fileHeadRes.value, true);
+      return this._handleHead(fileHeadRes.value, false);
     } else if (dirHeadRes.status === "fulfilled") {
-      const stats = this._handleHead(dirHeadRes.value, false);
+      const stats = this._handleHead(dirHeadRes.value, true);
       delete stats.size;
       return stats;
     }
@@ -167,7 +168,7 @@ export class S3FileSystem extends AbstractFileSystem {
     for (const [key, value] of Object.entries(props)) {
       metadata[key] = "" + value; // eslint-disable-line
     }
-    const key = this._getKey(path);
+    const key = this._getKey(path, false);
     try {
       const cmd = new CopyObjectCommand({
         Bucket: this.bucket,
@@ -195,16 +196,16 @@ export class S3FileSystem extends AbstractFileSystem {
     const client = await this._getClient();
     switch (options.urlType) {
       case "GET": {
-        const cmd = new GetObjectCommand(this._createCommand(path));
+        const cmd = new GetObjectCommand(this._createCommand(path, false));
         return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       case "PUT":
       case "POST": {
-        const cmd = new PutObjectCommand(this._createCommand(path));
+        const cmd = new PutObjectCommand(this._createCommand(path, false));
         return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       case "DELETE": {
-        const cmd = new DeleteObjectCommand(this._createCommand(path));
+        const cmd = new DeleteObjectCommand(this._createCommand(path, false));
         return getSignedUrl(client, cmd, { expiresIn: options.expires });
       }
       default:
@@ -217,9 +218,9 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  private _handleHead(data: HeadObjectCommandOutput, isFile: boolean) {
+  private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
     let size: number | undefined;
-    if (isFile) {
+    if (!isDirectory) {
       size = data.ContentLength;
     }
     const stats: Stats = {

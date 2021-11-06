@@ -32,7 +32,7 @@ export class S3File extends AbstractFile {
     const path = this.path;
 
     try {
-      const cmd = new DeleteObjectCommand(s3fs._createCommand(path));
+      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, false));
       const client = await s3fs._getClient();
       await client.send(cmd);
     } catch (e) {
@@ -45,7 +45,7 @@ export class S3File extends AbstractFile {
   ): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
-    const cmd = new GetObjectCommand(s3fs._createCommand(path));
+    const cmd = new GetObjectCommand(s3fs._createCommand(path, false));
 
     try {
       const client = await s3fs._getClient();
@@ -102,7 +102,7 @@ export class S3File extends AbstractFile {
         const upload = new Upload({
           client,
           params: {
-            ...s3fs._createCommand(path),
+            ...s3fs._createCommand(path, false),
             Body: body,
           },
         });
@@ -110,7 +110,7 @@ export class S3File extends AbstractFile {
       } else {
         const length = await converter.getSize(body);
         const cmd = new PutObjectCommand({
-          ...s3fs._createCommand(path),
+          ...s3fs._createCommand(path, false),
           Body: body,
           ContentLength: length,
         });
