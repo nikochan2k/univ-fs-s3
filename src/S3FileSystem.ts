@@ -56,6 +56,14 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
+  public _createMetadata(props: Props) {
+    const metadata: { [key: string]: string } = {};
+    for (const [key, value] of Object.entries(props)) {
+      metadata[key] = "" + value; // eslint-disable-line
+    }
+    return metadata;
+  }
+
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     if (
@@ -164,17 +172,13 @@ export class S3FileSystem extends AbstractFileSystem {
     props: Props,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
-    const metadata: { [key: string]: string } = {};
-    for (const [key, value] of Object.entries(props)) {
-      metadata[key] = "" + value; // eslint-disable-line
-    }
     const key = this._getKey(path, props["size"] == null);
     try {
       const cmd = new CopyObjectCommand({
         Bucket: this.bucket,
         CopySource: this.bucket + "/" + key,
         Key: key,
-        Metadata: metadata,
+        Metadata: this._createMetadata(props),
       });
       const client = await this._getClient();
       await client.send(cmd);

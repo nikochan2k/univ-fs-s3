@@ -14,12 +14,7 @@ import {
   isReadableStream,
   isReadableStreamData,
 } from "univ-conv";
-import {
-  AbstractFile,
-  NotFoundError,
-  OpenOptions,
-  WriteOptions,
-} from "univ-fs";
+import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -56,21 +51,22 @@ export class S3File extends AbstractFile {
     }
   }
 
-  protected async _save(data: Data, options: WriteOptions): Promise<void> {
+  protected async _save(
+    data: Data,
+    stats: Stats | undefined,
+    options: WriteOptions
+  ): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
     const converter = new Converter(options);
 
     try {
       let head: Data | undefined;
-      if (options.append) {
+      if (options.append && stats) {
         try {
           head = await this._load(options);
         } catch (e: unknown) {
-          const err = s3fs._error(path, e, false);
-          if (err.name !== NotFoundError.name) {
-            throw e;
-          }
+          throw s3fs._error(path, e, false);
         }
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
@@ -97,6 +93,14 @@ export class S3File extends AbstractFile {
         }
       }
 
+      let metadata: { [key: string]: string } | undefined;
+      if (stats) {
+        const props = { ...stats };
+        delete props.size;
+        delete props.etag;
+        delete props.modified;
+      }
+
       const client = await s3fs._getClient();
       if (isReadableStreamData(body)) {
         const upload = new Upload({
@@ -104,6 +108,7 @@ export class S3File extends AbstractFile {
           params: {
             ...s3fs._createCommand(path, false),
             Body: body,
+            Metadata: metadata,
           },
         });
         await upload.done();
@@ -113,6 +118,7 @@ export class S3File extends AbstractFile {
           ...s3fs._createCommand(path, false),
           Body: body,
           ContentLength: length,
+          Metadata: metadata,
         });
         await client.send(cmd);
       }
