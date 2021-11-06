@@ -227,7 +227,7 @@ export class S3FileSystem extends AbstractFileSystem {
     return Promise.resolve(new S3Directory(this, path));
   }
 
-  public async getFile(path: string): Promise<AbstractFile> {
+  public async _getFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new S3File(this, path));
   }
 

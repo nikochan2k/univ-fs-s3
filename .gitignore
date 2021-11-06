@@ -106,3 +106,4 @@ dist
 lib/
 tsconfig.tsbuildinfo
 .DS_Store
+.chrome-karma

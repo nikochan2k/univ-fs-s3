@@ -63,11 +63,7 @@ export class S3File extends AbstractFile {
     try {
       let head: Data | undefined;
       if (options.append && stats) {
-        try {
-          head = await this._load(options);
-        } catch (e: unknown) {
-          throw s3fs._error(path, e, false);
-        }
+        head = await this._load(options);
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
       if (head) {
@@ -99,6 +95,7 @@ export class S3File extends AbstractFile {
         delete props.size;
         delete props.etag;
         delete props.modified;
+        metadata = s3fs._createMetadata(props);
       }
 
       const client = await s3fs._getClient();
