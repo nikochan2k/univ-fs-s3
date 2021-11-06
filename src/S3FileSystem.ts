@@ -114,6 +114,14 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
+  public async _getDirectory(path: string): Promise<AbstractDirectory> {
+    return Promise.resolve(new S3Directory(this, path));
+  }
+
+  public async _getFile(path: string): Promise<AbstractFile> {
+    return Promise.resolve(new S3File(this, path));
+  }
+
   public _getKey(path: string, isDirectory: boolean) {
     let key: string;
     if (!path || path === "/") {
@@ -221,14 +229,6 @@ export class S3FileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
-  }
-
-  public async getDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new S3Directory(this, path));
-  }
-
-  public async _getFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new S3File(this, path));
   }
 
   private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
