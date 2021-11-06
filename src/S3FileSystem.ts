@@ -168,7 +168,7 @@ export class S3FileSystem extends AbstractFileSystem {
     for (const [key, value] of Object.entries(props)) {
       metadata[key] = "" + value; // eslint-disable-line
     }
-    const key = this._getKey(path, false);
+    const key = this._getKey(path, props["size"] == null);
     try {
       const cmd = new CopyObjectCommand({
         Bucket: this.bucket,
