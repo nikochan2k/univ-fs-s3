@@ -218,16 +218,35 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
-    let size: number | undefined;
-    if (!isDirectory) {
-      size = data.ContentLength;
+  protected override _fixProps(props: Props, stats: Stats) {
+    if (props["size"]) {
+      delete props["size"];
     }
-    const stats: Stats = {
-      modified: data.LastModified?.getTime(),
-      size,
-      etag: data.ETag,
-    };
+    if (props["etag"]) {
+      delete props["etag"];
+    }
+    if (props["modified"]) {
+      delete props["modified"];
+    }
+    if (!props["accessed"] && stats.accessed) {
+      props["accessed"] = stats.accessed;
+    }
+    if (!props["created"] && stats.created) {
+      props["created"] = stats.created;
+    }
+  }
+
+  private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
+    const stats: Stats = {};
+    if (!isDirectory) {
+      stats.size = data.ContentLength;
+    }
+    if (data.LastModified) {
+      stats.modified = data.LastModified.getTime();
+    }
+    if (data.ETag) {
+      stats.etag = data.ETag;
+    }
     for (const [key, value] of Object.entries(data.Metadata ?? {})) {
       if (key === "modified" || key === "size" || key === "etag") {
         continue;
