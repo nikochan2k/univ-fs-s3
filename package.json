@@ -49,7 +49,7 @@
     "@types/node": "^16.11.6",
     "@typescript-eslint/eslint-plugin": "^5.3.0",
     "@typescript-eslint/parser": "^5.3.0",
-    "eslint": "^8.1.0",
+    "eslint": "^8.2.0",
     "eslint-config-prettier": "^8.3.0",
     "jest": "^27.3.1",
     "npm-run-all": "^4.1.5",
@@ -59,11 +59,11 @@
     "typescript": "^4.4.4"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.39.0",
-    "@aws-sdk/lib-storage": "^3.39.0",
-    "@aws-sdk/s3-request-presigner": "^3.39.0",
+    "@aws-sdk/client-s3": "^3.40.0",
+    "@aws-sdk/lib-storage": "^3.40.0",
+    "@aws-sdk/s3-request-presigner": "^3.40.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.5.7"
+    "univ-fs": "^0.5.12"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

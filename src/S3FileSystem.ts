@@ -226,9 +226,10 @@ export class S3FileSystem extends AbstractFileSystem {
     const stats: Stats = {
       modified: data.LastModified?.getTime(),
       size,
+      etag: data.ETag,
     };
     for (const [key, value] of Object.entries(data.Metadata ?? {})) {
-      if (key === "modified" || key === "size") {
+      if (key === "modified" || key === "size" || key === "etag") {
         continue;
       }
       stats[key] = value;
