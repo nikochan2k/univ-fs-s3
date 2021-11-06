@@ -6,6 +6,7 @@ import {
   HeadObjectCommandInput,
   HeadObjectCommandOutput,
   ListObjectsV2Command,
+  ListObjectsV2CommandOutput,
   PutObjectCommand,
   PutObjectCommandInput,
   S3Client,
@@ -18,6 +19,7 @@ import {
   AbstractFileSystem,
   createError,
   FileSystemOptions,
+  HeadOptions,
   joinPaths,
   NoModificationAllowedError,
   NotFoundError,
@@ -127,7 +129,7 @@ export class S3FileSystem extends AbstractFileSystem {
     if (!path || path === "/") {
       key = this.repository;
     } else {
-      key = joinPaths(this.repository, path);
+      key = joinPaths(this.repository, path, false);
     }
     if (isDirectory) {
       key += "/";
@@ -135,22 +137,36 @@ export class S3FileSystem extends AbstractFileSystem {
     return key;
   }
 
-  public async _head(path: string): Promise<Stats> {
-    const fileHeadCmd = new HeadObjectCommand(this._createCommand(path, false));
-    const dirHeadCmd = new HeadObjectCommand({
-      Bucket: this.bucket,
-      Key: this._getKey(path, true),
-    });
-    const dirListCmd = new ListObjectsV2Command({
-      Bucket: this.bucket,
-      Delimiter: "/",
-      Prefix: this._getKey(path, true),
-      MaxKeys: 1,
-    });
+  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
+    options = { ...options };
+    const isFile = !options.type || options.type === "file";
+    const isDirectory = !options.type || options.type === "directory";
     const client = await this._getClient();
-    const fileHead = client.send(fileHeadCmd);
-    const dirHead = client.send(dirHeadCmd);
-    const dirList = client.send(dirListCmd);
+    let fileHead: Promise<HeadObjectCommandOutput>;
+    if (isFile) {
+      const fileHeadCmd = new HeadObjectCommand(
+        this._createCommand(path, false)
+      );
+      fileHead = client.send(fileHeadCmd);
+    } else {
+      fileHead = Promise.reject();
+    }
+    let dirHead: Promise<HeadObjectCommandOutput>;
+    let dirList: Promise<ListObjectsV2CommandOutput>;
+    if (isDirectory) {
+      const dirHeadCmd = new HeadObjectCommand(this._createCommand(path, true));
+      dirHead = client.send(dirHeadCmd);
+      const dirListCmd = new ListObjectsV2Command({
+        Bucket: this.bucket,
+        Delimiter: "/",
+        Prefix: this._getKey(path, true),
+        MaxKeys: 1,
+      });
+      dirList = client.send(dirListCmd);
+    } else {
+      dirHead = Promise.reject();
+      dirList = Promise.reject();
+    }
     const [fileHeadRes, dirHeadRes, dirListRes] = await Promise.allSettled([
       fileHead,
       dirHead,
@@ -162,8 +178,7 @@ export class S3FileSystem extends AbstractFileSystem {
       const stats = this._handleHead(dirHeadRes.value, true);
       delete stats.size;
       return stats;
-    }
-    if (dirListRes.status === "fulfilled") {
+    } else if (dirListRes.status === "fulfilled") {
       const res = dirListRes.value;
       if (
         (res.Contents && 0 < res.Contents.length) ||
@@ -172,7 +187,19 @@ export class S3FileSystem extends AbstractFileSystem {
         return {};
       }
     }
-    throw this._error(path, fileHeadRes.reason, false);
+    let dirListReason: unknown | undefined;
+    if (dirListRes.status === "rejected") {
+      dirListReason = dirListRes.reason;
+    }
+    if (isFile) {
+      throw this._error(path, fileHeadRes.reason, false);
+    }
+    if (isDirectory) {
+      if (dirHeadRes.reason) {
+        throw this._error(path, dirHeadRes.reason, false);
+      }
+    }
+    throw this._error(path, dirListReason, false);
   }
 
   public async _patch(
