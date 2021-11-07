@@ -25,7 +25,6 @@ export class S3Directory extends AbstractDirectory {
         },
         objects
       );
-      console.log(objects);
       return objects;
     } catch (e) {
       const err = s3FS._error(path, e, false);
