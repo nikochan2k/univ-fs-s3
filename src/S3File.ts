@@ -91,11 +91,7 @@ export class S3File extends AbstractFile {
 
       let metadata: { [key: string]: string } | undefined;
       if (stats) {
-        const props = { ...stats };
-        delete props.size;
-        delete props.etag;
-        delete props.modified;
-        metadata = s3fs._createMetadata(props);
+        metadata = s3fs._createMetadata(stats);
       }
 
       const client = await s3fs._getClient();

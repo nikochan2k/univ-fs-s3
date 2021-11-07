@@ -61,6 +61,9 @@ export class S3FileSystem extends AbstractFileSystem {
   public _createMetadata(props: Props) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
+      if (0 <= ["size", "etag", "modified"].indexOf(key)) {
+        continue;
+      }
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
