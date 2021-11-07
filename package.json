@@ -23,7 +23,7 @@
     "npm-version": "npm version patch",
     "npm-publish": "npm publish",
     "release": "npm-run-all clean compile npm-version npm-publish",
-    "test": "jest --runInBand --forceExit",
+    "test": "jest --runInBand",
     "web-clean": "rimraf ./dist",
     "web-compile": "webpack",
     "web-build": "npm-run-all web-clean web-compile",
@@ -75,7 +75,7 @@
     "@aws-sdk/lib-storage": "^3.40.0",
     "@aws-sdk/s3-request-presigner": "^3.40.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.5.21"
+    "univ-fs": "^0.5.26"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

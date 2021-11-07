@@ -1,4 +1,4 @@
 import { testAll } from "univ-fs/lib/__tests__/basic";
-import { fs, init } from "./init";
+import { fs, setup, teardown } from "./setup";
 
-testAll(fs, () => init());
+testAll(fs, { setup, teardown });

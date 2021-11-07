@@ -17,7 +17,7 @@ const config: S3ClientConfig = {
 };
 export const fs = new S3FileSystem("univ-fs-test", "test", config);
 
-export const init = async () => {
+export const setup = async () => {
   const client = new S3Client(config);
   const listCmd = new ListObjectsV2Command({
     Bucket: "univ-fs-test",
@@ -30,4 +30,8 @@ export const init = async () => {
     });
     await client.send(deleteCmd);
   }
+};
+
+export const teardown = async () => {
+  fs._dispose();
 };

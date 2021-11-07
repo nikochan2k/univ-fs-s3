@@ -66,6 +66,12 @@ export class S3FileSystem extends AbstractFileSystem {
     return metadata;
   }
 
+  public _dispose() {
+    if (this.client) {
+      this.client.destroy();
+    }
+  }
+
   public _error(path: string, e: unknown, write: boolean) {
     let name: string;
     if (
