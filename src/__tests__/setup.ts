@@ -2,19 +2,10 @@ import {
   DeleteObjectCommand,
   ListObjectsV2Command,
   S3Client,
-  S3ClientConfig,
 } from "@aws-sdk/client-s3";
 import { S3FileSystem } from "../S3FileSystem";
+import config from "./secret.json";
 
-const config: S3ClientConfig = {
-  region: "ap-northeast-1",
-  endpoint: "http://127.0.0.1:9000",
-  forcePathStyle: true,
-  credentials: {
-    accessKeyId: "minioadmin",
-    secretAccessKey: "minioadmin",
-  },
-};
 export const fs = new S3FileSystem("univ-fs-test", "test", config);
 
 export const setup = async () => {

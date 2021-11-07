@@ -25,6 +25,7 @@ export class S3Directory extends AbstractDirectory {
         },
         objects
       );
+      console.log(objects);
       return objects;
     } catch (e) {
       const err = s3FS._error(path, e, false);
@@ -75,21 +76,31 @@ export class S3Directory extends AbstractDirectory {
     const data = await client.send(cmd);
     // Directories
     for (const content of data.CommonPrefixes || []) {
-      if (content.Prefix) {
-        const parts = content.Prefix.split("/");
-        const name = parts[parts.length - 2] as string;
-        const path = joinPaths(this.path, name);
-        objects.push(path);
+      const prefix = content.Prefix;
+      if (!prefix) {
+        continue;
       }
+      if (prefix === params.Prefix) {
+        continue;
+      }
+      const parts = prefix.split("/");
+      const name = parts[parts.length - 2] as string;
+      const path = joinPaths(this.path, name);
+      objects.push(path);
     }
     // Files
     for (const content of data.Contents || []) {
-      if (content.Key) {
-        const parts = content.Key.split("/");
-        const name = parts[parts.length - 1] as string;
-        const path = joinPaths(this.path, name);
-        objects.push(path);
+      const key = content.Key;
+      if (!key) {
+        continue;
       }
+      if (key === params.Prefix) {
+        continue;
+      }
+      const parts = key.split("/");
+      const name = parts[parts.length - 1] as string;
+      const path = joinPaths(this.path, name);
+      objects.push(path);
     }
 
     if (data.IsTruncated) {
