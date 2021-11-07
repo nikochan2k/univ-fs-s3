@@ -35,9 +35,8 @@ export class S3File extends AbstractFile {
     }
   }
 
-  protected async _load(
-    _options: OpenOptions // eslint-disable-line
-  ): Promise<Data> {
+  // eslint-disable-next-line
+  protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
     const cmd = new GetObjectCommand(s3fs._createCommand(path, false));
@@ -63,7 +62,7 @@ export class S3File extends AbstractFile {
     try {
       let head: Data | undefined;
       if (options.append && stats) {
-        head = await this._load(options);
+        head = await this._load(stats, options);
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
       if (head) {
