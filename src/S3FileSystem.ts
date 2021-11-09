@@ -231,25 +231,35 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _toURL(path: string, options?: URLOptions): Promise<string> {
+  public async _toURL(
+    path: string,
+    isDirectory: boolean,
+    options?: URLOptions
+  ): Promise<string> {
     try {
       options = { urlType: "GET", expires: 86400, ...options };
       const client = await this._getClient();
       let url: string;
       switch (options.urlType) {
         case "GET": {
-          const cmd = new GetObjectCommand(this._createCommand(path, false));
+          const cmd = new GetObjectCommand(
+            this._createCommand(path, isDirectory)
+          );
           url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
           break;
         }
         case "PUT":
         case "POST": {
-          const cmd = new PutObjectCommand(this._createCommand(path, false));
+          const cmd = new PutObjectCommand(
+            this._createCommand(path, isDirectory)
+          );
           url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
           break;
         }
         case "DELETE": {
-          const cmd = new DeleteObjectCommand(this._createCommand(path, false));
+          const cmd = new DeleteObjectCommand(
+            this._createCommand(path, isDirectory)
+          );
           url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
           break;
         }
