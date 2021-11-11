@@ -9,10 +9,12 @@ import {
   Converter,
   Data,
   isBlob,
-  isBuffer,
+  isBrowser,
+  isNode,
   isReadable,
   isReadableStream,
   isReadableStreamData,
+  isUint8Array,
 } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
@@ -66,10 +68,12 @@ export class S3File extends AbstractFile {
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
       if (head) {
-        if (isReadable(head) || isReadable(data)) {
+        if (isNode && (isReadable(head) || isReadable(data))) {
           body = await converter.merge([head, data], "Readable");
-        } else if (isReadableStream(head) || isReadable(data)) {
+        } else if (isBrowser && (isReadableStream(head) || isReadable(data))) {
           body = await converter.merge([head, data], "ReadableStream");
+        } else if (isBrowser && (isBlob(head) || isBlob(data))) {
+          body = await converter.merge([head, data], "Blob");
         } else if (typeof head === "string" && typeof data === "string") {
           body = await converter.merge([head, data], "UTF8");
         } else {
@@ -79,7 +83,7 @@ export class S3File extends AbstractFile {
         if (
           typeof data === "string" ||
           isBlob(data) ||
-          isBuffer(data) ||
+          isUint8Array(data) ||
           isReadableStreamData(data)
         ) {
           body = data;
