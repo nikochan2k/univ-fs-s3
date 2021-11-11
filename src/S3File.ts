@@ -10,11 +10,11 @@ import {
   Data,
   isBlob,
   isBrowser,
+  isBuffer,
   isNode,
   isReadable,
   isReadableStream,
   isReadableStreamData,
-  isUint8Array,
 } from "univ-conv";
 import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
@@ -76,17 +76,20 @@ export class S3File extends AbstractFile {
           body = await converter.merge([head, data], "Blob");
         } else if (typeof head === "string" && typeof data === "string") {
           body = await converter.merge([head, data], "UTF8");
+        } else if (isNode) {
+          body = await converter.merge([head, data], "Buffer");
         } else {
           body = await converter.merge([head, data], "Uint8Array");
         }
       } else {
         if (
           typeof data === "string" ||
-          isBlob(data) ||
-          isUint8Array(data) ||
-          isReadableStreamData(data)
+          (isBrowser && (isReadableStream(data) || isBlob(data))) ||
+          (isNode && (isReadable(data) || isBuffer(data)))
         ) {
           body = data;
+        } else if (isNode) {
+          body = await converter.toBuffer(data);
         } else {
           body = await converter.toUint8Array(data);
         }
