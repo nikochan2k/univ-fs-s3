@@ -1,8 +1,6 @@
 import {
-  DeleteObjectCommand,
   ListObjectsV2Command,
   ListObjectsV2CommandInput,
-  PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { AbstractDirectory, joinPaths, NotFoundError } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
@@ -36,34 +34,11 @@ export class S3Directory extends AbstractDirectory {
   }
 
   public async _mkcol(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-    const cmd = new PutObjectCommand({
-      Bucket: s3fs.bucket,
-      Key: s3fs._getKey(path, true),
-      Body: "",
-    });
-    try {
-      const client = await s3fs._getClient();
-      await client.send(cmd);
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   public async _rmdir(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-    const cmd = new DeleteObjectCommand({
-      Bucket: s3fs.bucket,
-      Key: s3fs._getKey(path, true),
-    });
-    try {
-      const client = await s3fs._getClient();
-      await client.send(cmd);
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
+    return Promise.resolve();
   }
 
   private async _listObjects(

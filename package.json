@@ -52,8 +52,8 @@
   "devDependencies": {
     "@types/jest": "^27.0.2",
     "@types/node": "^16.11.7",
-    "@typescript-eslint/eslint-plugin": "^5.3.1",
-    "@typescript-eslint/parser": "^5.3.1",
+    "@typescript-eslint/eslint-plugin": "^5.4.0",
+    "@typescript-eslint/parser": "^5.4.0",
     "eslint": "^8.2.0",
     "eslint-config-prettier": "^8.3.0",
     "jasmine": "^3.10.0",
@@ -67,15 +67,15 @@
     "ts-jest": "^27.0.7",
     "ts-loader": "^9.2.6",
     "typescript": "^4.4.4",
-    "webpack": "^5.62.2",
+    "webpack": "^5.64.1",
     "webpack-cli": "^4.9.1"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.40.1",
-    "@aws-sdk/lib-storage": "^3.40.1",
-    "@aws-sdk/s3-request-presigner": "^3.40.1",
+    "@aws-sdk/client-s3": "^3.41.0",
+    "@aws-sdk/lib-storage": "^3.41.0",
+    "@aws-sdk/s3-request-presigner": "^3.41.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.5.32"
+    "univ-fs": "^0.5.33"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
