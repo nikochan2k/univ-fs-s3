@@ -56,7 +56,7 @@
     "@typescript-eslint/parser": "^5.9.0",
     "eslint": "^8.6.0",
     "eslint-config-prettier": "^8.3.0",
-    "jasmine": "^3.10.0",
+    "jasmine": "^4.0.0",
     "jest": "^27.4.5",
     "karma": "^6.3.9",
     "karma-chrome-launcher": "^3.1.0",
@@ -75,7 +75,7 @@
     "@aws-sdk/lib-storage": "^3.45.0",
     "@aws-sdk/s3-request-presigner": "^3.45.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.5.35"
+    "univ-fs": "^0.5.36"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
