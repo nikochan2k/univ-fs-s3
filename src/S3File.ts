@@ -6,17 +6,13 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
 import {
-  Converter,
+  blobConverter,
   Data,
-  isBlob,
-  isBrowser,
-  isBuffer,
-  isNode,
-  isReadable,
-  isReadableStream,
-  isReadableStreamData,
+  hasBuffer,
+  readableConverter,
+  readableStreamConverter,
 } from "univ-conv";
-import { AbstractFile, OpenOptions, Stats, WriteOptions } from "univ-fs";
+import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -38,7 +34,7 @@ export class S3File extends AbstractFile {
   }
 
   // eslint-disable-next-line
-  protected async _load(_stats: Stats, _options: OpenOptions): Promise<Data> {
+  protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
     const cmd = new GetObjectCommand(s3fs._createCommand(path, false));
@@ -59,7 +55,7 @@ export class S3File extends AbstractFile {
   ): Promise<void> {
     const s3fs = this.s3fs;
     const path = this.path;
-    const converter = new Converter(options);
+    const converter = this._getConverter();
 
     try {
       let head: Data | undefined;
@@ -67,28 +63,48 @@ export class S3File extends AbstractFile {
         head = await this._load(stats, options);
       }
       let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
+      /* eslint-disable */
       if (head) {
-        if (isNode && (isReadable(head) || isReadable(data))) {
-          body = await converter.merge([head, data], "Readable");
-        } else if (isBrowser && (isReadableStream(head) || isReadable(data))) {
-          body = await converter.merge([head, data], "ReadableStream");
-        } else if (isBrowser && (isBlob(head) || isBlob(data))) {
-          body = await converter.merge([head, data], "Blob");
+        if (
+          readableConverter().typeEquals(head) ||
+          readableConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "readable", options);
+        } else if (
+          readableStreamConverter().typeEquals(head) ||
+          readableStreamConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "readablestream", options);
+        } else if (
+          blobConverter().typeEquals(head) ||
+          blobConverter().typeEquals(data)
+        ) {
+          body = await converter.merge([head, data], "blob", options);
         } else if (typeof head === "string" && typeof data === "string") {
-          body = await converter.merge([head, data], "UTF8");
-        } else if (isNode) {
-          body = await converter.merge([head, data], "Buffer");
+          body = await converter.merge(
+            [head, data],
+            options.srcStringType || "text",
+            options
+          );
+        } else if (hasBuffer) {
+          body = await converter.merge([head, data], "buffer", options);
         } else {
-          body = await converter.merge([head, data], "Uint8Array");
+          body = await converter.merge([head, data], "uint8array", options);
         }
       } else {
-        if (
-          typeof data === "string" ||
-          (isBrowser && (isReadableStream(data) || isBlob(data))) ||
-          (isNode && (isReadable(data) || isBuffer(data)))
-        ) {
-          body = data;
-        } else if (isNode) {
+        if (readableConverter().typeEquals(data)) {
+          body = await converter.convert(data, "readable", options);
+        } else if (readableStreamConverter().typeEquals(data)) {
+          body = await converter.convert(data, "readablestream", options);
+        } else if (blobConverter().typeEquals(data)) {
+          body = await converter.convert(data, "blob", options);
+        } else if (typeof data === "string") {
+          body = await converter.convert(
+            data,
+            options.srcStringType || "text",
+            options
+          );
+        } else if (hasBuffer) {
           body = await converter.toBuffer(data);
         } else {
           body = await converter.toUint8Array(data);
@@ -101,7 +117,7 @@ export class S3File extends AbstractFile {
       }
 
       const client = await s3fs._getClient();
-      if (isReadableStreamData(body)) {
+      if (readableStreamConverter().typeEquals(body)) {
         const upload = new Upload({
           client,
           params: {
@@ -121,6 +137,7 @@ export class S3File extends AbstractFile {
         });
         await client.send(cmd);
       }
+      /* eslint-enable */
     } catch (e) {
       throw s3fs._error(path, e, true);
     }
