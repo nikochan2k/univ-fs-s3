@@ -33,8 +33,8 @@ export class S3File extends AbstractFile {
     }
   }
 
-  // eslint-disable-next-line
-  protected async _load(_stats: Stats, _options: ReadOptions): Promise<Data> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected async _load(_1: Stats, _2: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
     const cmd = new GetObjectCommand(s3fs._createCommand(path, false));
