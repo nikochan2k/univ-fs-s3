@@ -62,7 +62,7 @@ export class S3File extends AbstractFile {
       if (options.append && stats) {
         head = await this._load(stats, options);
       }
-      let body: string | Readable | ReadableStream<unknown> | Blob | Uint8Array;
+      let body: Readable | ReadableStream<unknown> | Blob | Uint8Array;
       /* eslint-disable */
       if (head) {
         if (
@@ -80,12 +80,6 @@ export class S3File extends AbstractFile {
           blobConverter().typeEquals(data)
         ) {
           body = await converter.merge([head, data], "blob", options);
-        } else if (typeof head === "string" && typeof data === "string") {
-          body = await converter.merge(
-            [head, data],
-            options.srcStringType || "text",
-            options
-          );
         } else if (hasBuffer) {
           body = await converter.merge([head, data], "buffer", options);
         } else {
@@ -98,12 +92,6 @@ export class S3File extends AbstractFile {
           body = await converter.convert(data, "readablestream", options);
         } else if (blobConverter().typeEquals(data)) {
           body = await converter.convert(data, "blob", options);
-        } else if (typeof data === "string") {
-          body = await converter.convert(
-            data,
-            options.srcStringType || "text",
-            options
-          );
         } else if (hasBuffer) {
           body = await converter.toBuffer(data);
         } else {
@@ -117,7 +105,10 @@ export class S3File extends AbstractFile {
       }
 
       const client = await s3fs._getClient();
-      if (readableStreamConverter().typeEquals(body)) {
+      if (
+        readableConverter().typeEquals(body) ||
+        readableStreamConverter().typeEquals(body)
+      ) {
         const upload = new Upload({
           client,
           params: {
