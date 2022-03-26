@@ -33,21 +33,47 @@ import {
 import { S3Directory } from "./S3Directory";
 import { S3File } from "./S3File";
 
+export interface S3FileSystemOptions extends FileSystemOptions {
+  canCreateDirectory?: boolean;
+}
+
 export interface Command {
   Bucket: string;
   Key: string;
 }
 
+if (!Promise.allSettled) {
+  /* eslint-disable */
+  (Promise as any).allSettled = (promises: any) =>
+    Promise.all(
+      promises.map((p: any) =>
+        p
+          .then((value: any) => ({
+            status: "fulfilled",
+            value,
+          }))
+          .catch((reason: any) => ({
+            status: "rejected",
+            reason,
+          }))
+      )
+    );
+  /* eslint-enable */
+}
+
 export class S3FileSystem extends AbstractFileSystem {
   private client?: S3Client;
+
+  public readonly canCreateDirectory: boolean;
 
   constructor(
     public bucket: string,
     repository: string,
     private config: S3ClientConfig,
-    options?: FileSystemOptions
+    options?: S3FileSystemOptions
   ) {
     super(repository, options);
+    this.canCreateDirectory = options?.canCreateDirectory ?? true;
   }
 
   public _createCommand(path: string, isDirectory: boolean): Command {
@@ -101,6 +127,10 @@ export class S3FileSystem extends AbstractFileSystem {
     }
 
     this.client = new S3Client({ ...this.config });
+    if (!this.supportDirectory()) {
+      return this.client;
+    }
+
     const input: HeadObjectCommandInput | PutObjectCommandInput = {
       Bucket: this.bucket,
       Key: this._getKey("/", true),
@@ -147,10 +177,20 @@ export class S3FileSystem extends AbstractFileSystem {
   }
 
   public async _head(path: string, options?: HeadOptions): Promise<Stats> {
+    const client = await this._getClient();
+    if (!this.supportDirectory()) {
+      try {
+        const headCmd = new HeadObjectCommand(this._createCommand(path, false));
+        const head = await client.send(headCmd);
+        return this._handleHead(head, false);
+      } catch (e) {
+        throw this._error(path, e, false);
+      }
+    }
+
     options = { ...options };
     const isFile = !options.type || options.type === "file";
     const isDirectory = !options.type || options.type === "directory";
-    const client = await this._getClient();
     let fileHead: Promise<HeadObjectCommandOutput>;
     if (isFile) {
       const fileHeadCmd = new HeadObjectCommand(
@@ -270,6 +310,10 @@ export class S3FileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public supportDirectory(): boolean {
+    return this.canCreateDirectory;
   }
 
   private _handleHead(data: HeadObjectCommandOutput, isDirectory: boolean) {
