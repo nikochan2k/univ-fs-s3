@@ -83,7 +83,7 @@ export class S3Directory extends AbstractDirectory {
       }
       const parts = prefix.split("/");
       const name = parts[parts.length - 2] as string;
-      const path = joinPaths(this.path, name);
+      const path = joinPaths(this.path, name) + "/";
       objects.push(path);
     }
     // Files

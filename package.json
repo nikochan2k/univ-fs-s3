@@ -75,7 +75,7 @@
     "@aws-sdk/lib-storage": "^3.56.0",
     "@aws-sdk/s3-request-presigner": "^3.56.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.6.13"
+    "univ-fs": "^0.6.17"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
