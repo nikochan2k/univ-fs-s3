@@ -18,6 +18,7 @@ import {
   AbstractFile,
   AbstractFileSystem,
   createError,
+  EntryType,
   FileSystemOptions,
   HeadOptions,
   joinPaths,
@@ -189,8 +190,9 @@ export class S3FileSystem extends AbstractFileSystem {
     }
 
     options = { ...options };
-    const isFile = !options.type || options.type === "file";
-    const isDirectory = !options.type || options.type === "directory";
+    const type = options.type;
+    const isFile = !type || type === EntryType.File; // eslint-disable-line
+    const isDirectory = !type || type === EntryType.Directory; // eslint-disable-line
     let fileHead: Promise<HeadObjectCommandOutput>;
     if (isFile) {
       const fileHeadCmd = new HeadObjectCommand(

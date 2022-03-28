@@ -4,7 +4,13 @@ import {
   ListObjectsV2CommandInput,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import { AbstractDirectory, joinPaths, NotFoundError } from "univ-fs";
+import {
+  AbstractDirectory,
+  EntryType,
+  Item,
+  joinPaths,
+  NotFoundError,
+} from "univ-fs";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3Directory extends AbstractDirectory {
@@ -12,24 +18,26 @@ export class S3Directory extends AbstractDirectory {
     super(s3fs, path);
   }
 
-  public async _list(): Promise<string[]> {
+  public async _list(): Promise<Item[]> {
     const s3FS = this.s3fs;
     const path = this.path;
-    const objects: string[] = [];
+    const items: Item[] = [];
     try {
-      await this._listObjects(
+      await this._listItems(
         {
           Bucket: s3FS.bucket,
           Delimiter: "/",
           Prefix: s3FS._getKey(path, true),
         },
-        objects
+        items
       );
-      return objects;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return items;
     } catch (e) {
       const err = s3FS._error(path, e, false);
       if (err.name === NotFoundError.name) {
-        return objects;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return items;
       }
       throw err;
     }
@@ -65,10 +73,7 @@ export class S3Directory extends AbstractDirectory {
     }
   }
 
-  private async _listObjects(
-    params: ListObjectsV2CommandInput,
-    objects: string[]
-  ) {
+  private async _listItems(params: ListObjectsV2CommandInput, items: Item[]) {
     const cmd = new ListObjectsV2Command(params);
     const client = await this.s3fs._getClient();
     const data = await client.send(cmd);
@@ -83,8 +88,8 @@ export class S3Directory extends AbstractDirectory {
       }
       const parts = prefix.split("/");
       const name = parts[parts.length - 2] as string;
-      const path = joinPaths(this.path, name) + "/";
-      objects.push(path);
+      const path = joinPaths(this.path, name);
+      items.push({ path, type: EntryType.Directory }); // eslint-disable-line
     }
     // Files
     for (const content of data.Contents || []) {
@@ -98,12 +103,12 @@ export class S3Directory extends AbstractDirectory {
       const parts = key.split("/");
       const name = parts[parts.length - 1] as string;
       const path = joinPaths(this.path, name);
-      objects.push(path);
+      items.push({ path, type: EntryType.File }); // eslint-disable-line
     }
 
     if (data.IsTruncated) {
       params.ContinuationToken = data.NextContinuationToken;
-      await this._listObjects(params, objects);
+      await this._listItems(params, items);
     }
   }
 }
