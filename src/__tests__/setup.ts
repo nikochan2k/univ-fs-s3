@@ -10,7 +10,7 @@ export const setup = async () => {
     await root.rm({ force: true, recursive: true, ignoreHook: true });
     await root.mkdir({ force: true, recursive: false, ignoreHook: true });
   } catch (e) {
-    if (e.name !== NotFoundError.name) {
+    if ((e as any).name !== NotFoundError.name) {
       throw e;
     }
   }

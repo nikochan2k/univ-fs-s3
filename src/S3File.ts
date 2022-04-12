@@ -33,6 +33,14 @@ export class S3File extends AbstractFile {
     }
   }
 
+  public supportRangeRead(): boolean {
+    return false; // TODO
+  }
+
+  public supportRangeWrite(): boolean {
+    return false; // TODO
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async _load(_1: Stats, _2: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
@@ -119,7 +127,7 @@ export class S3File extends AbstractFile {
         });
         await upload.done();
       } else {
-        const length = await converter.getSize(body);
+        const length = await converter.getSize(body as Data);
         const cmd = new PutObjectCommand({
           ...s3fs._createCommand(path, false),
           Body: body,

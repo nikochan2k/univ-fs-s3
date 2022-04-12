@@ -1,10 +1,12 @@
 module.exports = {
   mode: "development",
   entry: {
-    index: "./src/index.ts",
+    "basic.spec": "./src/__tests__/basic.spec.ts",
+    "head.spec": "./src/__tests__/head.spec.ts",
+    "list.spec": "./src/__tests__/list.spec.ts",
   },
   output: {
-    filename: "univ-fs-s3.js",
+    filename: "[name].js",
     path: __dirname + "/dist",
   },
   module: {

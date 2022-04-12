@@ -27,7 +27,6 @@ import {
   NotReadableError,
   NotSupportedError,
   PatchOptions,
-  Props,
   Stats,
   URLOptions,
 } from "univ-fs";
@@ -85,10 +84,19 @@ export class S3FileSystem extends AbstractFileSystem {
     };
   }
 
-  public _createMetadata(props: Props) {
+  public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
-      if (0 <= ["size", "etag", "modified"].indexOf(key)) {
+      if (
+        0 <=
+        [
+          "Content−Length",
+          "Content−Type",
+          "Last−Modified",
+          "Last−Modified",
+          "ETag",
+        ].indexOf(key)
+      ) {
         continue;
       }
       metadata[key] = "" + value; // eslint-disable-line
@@ -255,7 +263,8 @@ export class S3FileSystem extends AbstractFileSystem {
 
   public async _patch(
     path: string,
-    props: Props,
+    _stats: Stats,
+    props: Stats,
     _options: PatchOptions // eslint-disable-line
   ): Promise<void> {
     const key = this._getKey(path, props["size"] == null);
@@ -312,6 +321,18 @@ export class S3FileSystem extends AbstractFileSystem {
     } catch (e) {
       throw this._error(path, e, false);
     }
+  }
+
+  public canPatchAccessed(): boolean {
+    return false;
+  }
+
+  public canPatchCreated(): boolean {
+    return false;
+  }
+
+  public canPatchModified(): boolean {
+    return false;
   }
 
   public supportDirectory(): boolean {
