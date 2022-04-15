@@ -1,6 +1,6 @@
 {
   "name": "univ-fs-s3",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "The universal Filesystem API for S3",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -27,8 +27,10 @@
     "web-clean": "rimraf ./dist",
     "web-compile": "webpack",
     "web-build": "npm-run-all web-clean web-compile",
+    "web-compile-test": "webpack --config webpack.config.test.js",
+    "web-build-test": "npm-run-all web-clean web-compile-test",
     "karma": "karma start",
-    "web-test": "npm-run-all web-build karma"
+    "web-test": "npm-run-all web-build-test karma"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -75,7 +77,7 @@
     "@aws-sdk/lib-storage": "^3.67.0",
     "@aws-sdk/s3-request-presigner": "^3.67.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.7.13"
+    "univ-fs": "^0.7.14"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
