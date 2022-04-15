@@ -111,7 +111,7 @@ export class S3FileSystem extends AbstractFileSystem {
   }
 
   public _error(path: string, e: unknown, write: boolean) {
-    let name: string;
+    let name: string | undefined;
     if (
       (e as any).name === "NotFound" || // eslint-disable-line
       (e as any).$metadata?.httpStatusCode === 404 // eslint-disable-line

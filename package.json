@@ -51,16 +51,16 @@
   },
   "devDependencies": {
     "@types/jest": "^27.4.1",
-    "@types/node": "^17.0.23",
+    "@types/node": "^17.0.24",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.19.0",
     "eslint": "^8.13.0",
     "eslint-config-prettier": "^8.5.0",
     "jasmine": "^4.1.0",
     "jest": "^27.5.1",
-    "karma": "^6.3.17",
+    "karma": "^6.3.18",
     "karma-chrome-launcher": "^3.1.1",
-    "karma-jasmine": "^4.0.2",
+    "karma-jasmine": "^5.0.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
@@ -75,7 +75,7 @@
     "@aws-sdk/lib-storage": "^3.67.0",
     "@aws-sdk/s3-request-presigner": "^3.67.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.7.8"
+    "univ-fs": "^0.7.13"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"
