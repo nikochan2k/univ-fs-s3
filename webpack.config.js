@@ -1,5 +1,5 @@
 module.exports = {
-  mode: "development",
+  mode: "production",
   entry: {
     index: "./src/index.ts",
   },
@@ -19,6 +19,10 @@ module.exports = {
     extensions: [".ts", ".js"],
     fallback: {
       stream: false,
+      fs: false,
+      os: false,
+      path: false,
+      url: false,
     },
   },
 };
