@@ -73,11 +73,11 @@
     "webpack-cli": "^4.9.2"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.67.0",
-    "@aws-sdk/lib-storage": "^3.67.0",
-    "@aws-sdk/s3-request-presigner": "^3.67.0",
+    "@aws-sdk/client-s3": "^3.72.0",
+    "@aws-sdk/lib-storage": "^3.72.0",
+    "@aws-sdk/s3-request-presigner": "^3.72.0",
     "tslib": "^2.3.1",
-    "univ-fs": "^0.7.14"
+    "univ-fs": "^0.7.16"
   },
   "author": "Yoshihiro Seki",
   "license": "MIT"

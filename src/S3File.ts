@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  GetObjectCommandInput,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
@@ -13,6 +14,7 @@ import {
   readableStreamConverter,
 } from "univ-conv";
 import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
+import { EMPTY_BUFFER } from "univ-conv";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -34,18 +36,33 @@ export class S3File extends AbstractFile {
   }
 
   public supportRangeRead(): boolean {
-    return false; // TODO
+    return true;
   }
 
   public supportRangeWrite(): boolean {
-    return false; // TODO
+    return false;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async _load(_1: Stats, _2: ReadOptions): Promise<Data> {
+  protected async _load(_stats: Stats, options: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
-    const cmd = new GetObjectCommand(s3fs._createCommand(path, false));
+    const length = options.length;
+    if (length === 0) {
+      return EMPTY_BUFFER;
+    }
+    const start = options.start;
+    let range: string | undefined;
+    if (typeof start === "number" || typeof length === "number") {
+      const s = typeof start === "number" ? start : 0;
+      const e = typeof length === "number" ? (s + length - 1).toString() : "";
+      range = `bytes=${s}-${e}`;
+    }
+    const cmdIn: GetObjectCommandInput = s3fs._createCommand(path, false);
+    if (range) {
+      cmdIn.Range = range;
+    }
+    const cmd = new GetObjectCommand(cmdIn);
 
     try {
       const client = await s3fs._getClient();

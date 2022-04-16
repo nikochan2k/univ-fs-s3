@@ -87,18 +87,7 @@ export class S3FileSystem extends AbstractFileSystem {
   public _createMetadata(props: Stats) {
     const metadata: { [key: string]: string } = {};
     for (const [key, value] of Object.entries(props)) {
-      if (
-        0 <=
-        [
-          "Content−Length",
-          "Content−Type",
-          "Last−Modified",
-          "Last−Modified",
-          "ETag",
-        ].indexOf(key)
-      ) {
-        continue;
-      }
+      if (!value) continue;
       metadata[key] = "" + value; // eslint-disable-line
     }
     return metadata;
@@ -164,11 +153,11 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _getDirectory(path: string): Promise<AbstractDirectory> {
+  public _getDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new S3Directory(this, path));
   }
 
-  public async _getFile(path: string): Promise<AbstractFile> {
+  public _getFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new S3File(this, path));
   }
 
