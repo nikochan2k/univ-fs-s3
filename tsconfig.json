@@ -30,5 +30,5 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
   },
-  "exclude": ["lib", "node_modules", "src/__tests__/*.spec.ts"]
+  "exclude": ["lib", "node_modules"]
 }
