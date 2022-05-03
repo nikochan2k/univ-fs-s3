@@ -36,22 +36,11 @@
   },
   "jest": {
     "moduleFileExtensions": [
-      "js",
-      "ts",
-      "tsx"
+      "js"
     ],
-    "transform": {
-      "^.+\\.(ts|tsx)$": "ts-jest"
-    },
-    "globals": {
-      "ts-jest": {
-        "tsconfig": "tsconfig.json"
-      }
-    },
     "testMatch": [
-      "<rootDir>/src/__tests__/**/*.spec.+(ts|tsx|js)"
-    ],
-    "preset": "ts-jest"
+      "<rootDir>/lib/__tests__/**/*.spec.js"
+    ]
   },
   "devDependencies": {
     "@types/jest": "^27.5.0",
