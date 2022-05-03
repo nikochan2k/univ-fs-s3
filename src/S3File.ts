@@ -7,14 +7,14 @@ import {
 import { Upload } from "@aws-sdk/lib-storage";
 import { Readable } from "stream";
 import {
-  blobConverter,
   Data,
-  hasBuffer,
+  EMPTY_BUFFER,
+  isBrowser,
+  isNode,
   readableConverter,
   readableStreamConverter,
 } from "univ-conv";
 import { AbstractFile, ReadOptions, Stats, WriteOptions } from "univ-fs";
-import { EMPTY_BUFFER } from "univ-conv";
 import { S3FileSystem } from "./S3FileSystem";
 
 export class S3File extends AbstractFile {
@@ -33,6 +33,10 @@ export class S3File extends AbstractFile {
     } catch (e) {
       throw s3fs._error(path, e, true);
     }
+  }
+
+  public supportAppend(): boolean {
+    return false;
   }
 
   public supportRangeRead(): boolean {
@@ -83,45 +87,17 @@ export class S3File extends AbstractFile {
     const converter = this._getConverter();
 
     try {
-      let head: Data | undefined;
-      if (options.append && stats) {
-        head = await this._load(stats, options);
-      }
       let body: Readable | ReadableStream<unknown> | Blob | Uint8Array;
-      /* eslint-disable */
-      if (head) {
-        if (
-          readableConverter().typeEquals(head) ||
-          readableConverter().typeEquals(data)
-        ) {
-          body = await converter.merge([head, data], "readable", options);
-        } else if (
-          readableStreamConverter().typeEquals(head) ||
-          readableStreamConverter().typeEquals(data)
-        ) {
-          body = await converter.merge([head, data], "readablestream", options);
-        } else if (
-          blobConverter().typeEquals(head) ||
-          blobConverter().typeEquals(data)
-        ) {
-          body = await converter.merge([head, data], "blob", options);
-        } else if (hasBuffer) {
-          body = await converter.merge([head, data], "buffer", options);
-        } else {
-          body = await converter.merge([head, data], "uint8array", options);
-        }
+      if (readableConverter().typeEquals(data)) {
+        body = await converter.toReadable(data, options);
+      } else if (readableStreamConverter().typeEquals(data)) {
+        body = await converter.toReadableStream(data, options);
+      } else if (isBrowser) {
+        body = await converter.toBlob(data, options);
+      } else if (isNode) {
+        body = await converter.toBuffer(data, options);
       } else {
-        if (readableConverter().typeEquals(data)) {
-          body = await converter.convert(data, "readable", options);
-        } else if (readableStreamConverter().typeEquals(data)) {
-          body = await converter.convert(data, "readablestream", options);
-        } else if (blobConverter().typeEquals(data)) {
-          body = await converter.convert(data, "blob", options);
-        } else if (hasBuffer) {
-          body = await converter.toBuffer(data);
-        } else {
-          body = await converter.toUint8Array(data);
-        }
+        body = await converter.toUint8Array(data, options);
       }
 
       let metadata: { [key: string]: string } | undefined;
@@ -153,7 +129,6 @@ export class S3File extends AbstractFile {
         });
         await client.send(cmd);
       }
-      /* eslint-enable */
     } catch (e) {
       throw s3fs._error(path, e, true);
     }
