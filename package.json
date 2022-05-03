@@ -17,7 +17,7 @@
     "s3"
   ],
   "scripts": {
-    "clean": "rimraf ./lib",
+    "clean": "rimraf ./lib ./tsconfig.tsbuildinfo",
     "compile": "tsc",
     "build": "npm-run-all clean compile",
     "npm-version": "npm version patch",
