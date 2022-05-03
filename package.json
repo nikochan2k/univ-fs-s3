@@ -22,7 +22,7 @@
     "build": "npm-run-all clean compile",
     "npm-version": "npm version patch",
     "npm-publish": "npm publish",
-    "sanitize": "rimraf ./lib/**/secret*.json",
+    "sanitize": "rimraf ./lib/**/*.json",
     "release": "npm-run-all clean sanitize compile npm-version npm-publish",
     "jest": "jest --runInBand",
     "test": "npm-run-all compile jest",
