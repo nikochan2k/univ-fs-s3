@@ -1,22 +1,14 @@
 module.exports = {
   mode: "production",
   entry: {
-    index: "./src/index.ts",
+    index: "./lib/index.js",
   },
   output: {
-    filename: "univ-fs-s3.js",
+    filename: "univ-conv.js",
     path: __dirname + "/dist",
   },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: "ts-loader",
-      },
-    ],
-  },
   resolve: {
-    extensions: [".ts", ".js"],
+    extensions: [".js"],
     fallback: {
       stream: false,
       fs: false,

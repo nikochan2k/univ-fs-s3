@@ -1,24 +1,16 @@
 module.exports = {
   mode: "development",
   entry: {
-    "basic.spec": "./src/__tests__/basic.spec.ts",
-    "head.spec": "./src/__tests__/head.spec.ts",
-    "list.spec": "./src/__tests__/list.spec.ts",
+    "basic.spec": "./lib/__tests__/basic.spec.js",
+    "head.spec": "./lib/__tests__/head.spec.js",
+    "list.spec": "./lib/__tests__/list.spec.js",
   },
   output: {
     filename: "[name].js",
     path: __dirname + "/dist",
   },
-  module: {
-    rules: [
-      {
-        test: /\.ts$/,
-        use: "ts-loader",
-      },
-    ],
-  },
   resolve: {
-    extensions: [".ts", ".js"],
+    extensions: [".js"],
     fallback: {
       stream: false,
       fs: false,

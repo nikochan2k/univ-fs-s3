@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "lib": ["ES2017", "DOM"],
+    "incremental": true,
     "module": "commonjs",
     "declaration": true,
     "declarationMap": true,
