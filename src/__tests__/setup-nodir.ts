@@ -1,8 +1,4 @@
-import {
-  DeleteObjectCommand,
-  ListObjectsV2Command,
-  S3Client,
-} from "@aws-sdk/client-s3";
+import { OnExists, OnNoParent, OnNotExist } from "univ-fs";
 import { S3FileSystem } from "../S3FileSystem";
 import config from "./secret.json";
 
@@ -11,18 +7,17 @@ export const fs = new S3FileSystem("univ-fs-test", "test-nodir", config, {
 });
 
 export const setup = async () => {
-  const client = new S3Client(config);
-  const listCmd = new ListObjectsV2Command({
-    Bucket: "univ-fs-test",
+  const root = await fs.getDirectory("/");
+  await root.rm({
+    onNotExist: OnNotExist.Ignore,
+    recursive: true,
+    ignoreHook: true,
   });
-  const data = await client.send(listCmd);
-  for (const content of data.Contents || []) {
-    const deleteCmd = new DeleteObjectCommand({
-      Bucket: "univ-fs-test",
-      Key: content.Key,
-    });
-    await client.send(deleteCmd);
-  }
+  await root.mkdir({
+    onExists: OnExists.Ignore,
+    onNoParent: OnNoParent.Error,
+    ignoreHook: true,
+  });
 };
 
 export const teardown = async () => {

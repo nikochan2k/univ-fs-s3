@@ -153,11 +153,11 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public _getDirectory(path: string): Promise<AbstractDirectory> {
+  public _doGetDirectory(path: string): Promise<AbstractDirectory> {
     return Promise.resolve(new S3Directory(this, path));
   }
 
-  public _getFile(path: string): Promise<AbstractFile> {
+  public _doGetFile(path: string): Promise<AbstractFile> {
     return Promise.resolve(new S3File(this, path));
   }
 
@@ -174,7 +174,7 @@ export class S3FileSystem extends AbstractFileSystem {
     return key;
   }
 
-  public async _head(path: string, options?: HeadOptions): Promise<Stats> {
+  public async _doHead(path: string, options?: HeadOptions): Promise<Stats> {
     const client = await this._getClient();
     if (!this.supportDirectory()) {
       try {
@@ -250,7 +250,7 @@ export class S3FileSystem extends AbstractFileSystem {
     throw this._error(path, dirListReason, false);
   }
 
-  public async _patch(
+  public async _doPatch(
     path: string,
     _stats: Stats,
     props: Stats,
@@ -271,7 +271,7 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _toURL(
+  public async _doToURL(
     path: string,
     isDirectory: boolean,
     options?: URLOptions

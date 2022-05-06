@@ -22,33 +22,8 @@ export class S3File extends AbstractFile {
     super(s3fs, path);
   }
 
-  public async _rm(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-
-    try {
-      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, false));
-      const client = await s3fs._getClient();
-      await client.send(cmd);
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
-  }
-
-  public supportAppend(): boolean {
-    return false;
-  }
-
-  public supportRangeRead(): boolean {
-    return true;
-  }
-
-  public supportRangeWrite(): boolean {
-    return false;
-  }
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  protected async _load(_stats: Stats, options: ReadOptions): Promise<Data> {
+  public async _doRead(_stats: Stats, options: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
     const path = this.path;
     const length = options.length;
@@ -77,7 +52,20 @@ export class S3File extends AbstractFile {
     }
   }
 
-  protected async _save(
+  public async _doRm(): Promise<void> {
+    const s3fs = this.s3fs;
+    const path = this.path;
+
+    try {
+      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, false));
+      const client = await s3fs._getClient();
+      await client.send(cmd);
+    } catch (e) {
+      throw s3fs._error(path, e, true);
+    }
+  }
+
+  public async _doWrite(
     data: Data,
     stats: Stats | undefined,
     options: WriteOptions
@@ -132,5 +120,17 @@ export class S3File extends AbstractFile {
     } catch (e) {
       throw s3fs._error(path, e, true);
     }
+  }
+
+  public supportAppend(): boolean {
+    return false;
+  }
+
+  public supportRangeRead(): boolean {
+    return true;
+  }
+
+  public supportRangeWrite(): boolean {
+    return false;
   }
 }
