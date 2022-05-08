@@ -44,12 +44,10 @@ export class S3Directory extends AbstractDirectory {
         },
         items
       );
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return items;
     } catch (e) {
       const err = s3FS._error(path, e, false);
       if (err.name === NotFoundError.name) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
         return items;
       }
       throw err;

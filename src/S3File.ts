@@ -35,10 +35,7 @@ export class S3File extends AbstractFile {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async _doRead(_stats: Stats, options: ReadOptions): Promise<Data> {
-    const s3fs = this.s3fs;
-    const path = this.path;
     const length = options.length;
     if (length === 0) {
       return EMPTY_BUFFER;
@@ -50,6 +47,9 @@ export class S3File extends AbstractFile {
       const e = typeof length === "number" ? (s + length - 1).toString() : "";
       range = `bytes=${s}-${e}`;
     }
+
+    const s3fs = this.s3fs;
+    const path = this.path;
     const cmdIn: GetObjectCommandInput = s3fs._createCommand(path, false);
     if (range) {
       cmdIn.Range = range;

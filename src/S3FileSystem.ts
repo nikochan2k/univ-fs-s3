@@ -26,7 +26,6 @@ import {
   NotFoundError,
   NotReadableError,
   NotSupportedError,
-  PatchOptions,
   Stats,
   URLOptions,
 } from "univ-fs";
@@ -60,6 +59,8 @@ if (!Promise.allSettled) {
     );
   /* eslint-enable */
 }
+
+const SECONDS_OF_DAY = 24 * 60 * 60;
 
 export class S3FileSystem extends AbstractFileSystem {
   private client?: S3Client;
@@ -113,7 +114,7 @@ export class S3FileSystem extends AbstractFileSystem {
     options?: URLOptions
   ): Promise<string> {
     try {
-      options = { method: "GET", expires: 86400, ...options };
+      options = { expires: SECONDS_OF_DAY, ...options };
       const client = await this._getClient();
       const params = this._createCommand(path, isDirectory);
       let url: string;
@@ -227,8 +228,7 @@ export class S3FileSystem extends AbstractFileSystem {
   public async _doPatch(
     path: string,
     _stats: Stats,
-    props: Stats,
-    _options: PatchOptions // eslint-disable-line
+    props: Stats
   ): Promise<void> {
     const key = this._getKey(path, props["size"] == null);
     try {
