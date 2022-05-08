@@ -22,6 +22,19 @@ export class S3File extends AbstractFile {
     super(s3fs, path);
   }
 
+  public async _doDelete(): Promise<void> {
+    const s3fs = this.s3fs;
+    const path = this.path;
+
+    try {
+      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, false));
+      const client = await s3fs._getClient();
+      await client.send(cmd);
+    } catch (e) {
+      throw s3fs._error(path, e, true);
+    }
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public async _doRead(_stats: Stats, options: ReadOptions): Promise<Data> {
     const s3fs = this.s3fs;
@@ -49,19 +62,6 @@ export class S3File extends AbstractFile {
       return obj.Body || "";
     } catch (e) {
       throw s3fs._error(path, e, false);
-    }
-  }
-
-  public async _doRm(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-
-    try {
-      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, false));
-      const client = await s3fs._getClient();
-      await client.send(cmd);
-    } catch (e) {
-      throw s3fs._error(path, e, true);
     }
   }
 

@@ -18,6 +18,19 @@ export class S3Directory extends AbstractDirectory {
     super(s3fs, path);
   }
 
+  public async _doDelete(): Promise<void> {
+    const s3fs = this.s3fs;
+    const path = this.path;
+
+    try {
+      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, true));
+      const client = await s3fs._getClient();
+      await client.send(cmd);
+    } catch (e) {
+      throw s3fs._error(path, e, true);
+    }
+  }
+
   public async _doList(): Promise<Item[]> {
     const s3FS = this.s3fs;
     const path = this.path;
@@ -54,19 +67,6 @@ export class S3Directory extends AbstractDirectory {
         Body: "",
         ContentLength: 0,
       });
-      await client.send(cmd);
-    } catch (e) {
-      throw s3fs._error(path, e, true);
-    }
-  }
-
-  public async _doRmdir(): Promise<void> {
-    const s3fs = this.s3fs;
-    const path = this.path;
-
-    try {
-      const cmd = new DeleteObjectCommand(s3fs._createCommand(path, true));
-      const client = await s3fs._getClient();
       await client.send(cmd);
     } catch (e) {
       throw s3fs._error(path, e, true);

@@ -99,79 +99,53 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public _error(path: string, e: unknown, write: boolean) {
-    let name: string | undefined;
-    if (
-      (e as any).name === "NotFound" || // eslint-disable-line
-      (e as any).$metadata?.httpStatusCode === 404 // eslint-disable-line
-    ) {
-      name = NotFoundError.name;
-    } else if (write) {
-      name = NoModificationAllowedError.name;
-    } else {
-      name = NotReadableError.name;
-    }
-    return createError({
-      name,
-      repository: this.repository,
-      path,
-      e: e as any, // eslint-disable-line
-    });
+  public _doGetDirectory(path: string): AbstractDirectory {
+    return new S3Directory(this, path);
   }
 
-  public async _getClient() {
-    if (this.client) {
-      return this.client;
-    }
+  public _doGetFile(path: string): AbstractFile {
+    return new S3File(this, path);
+  }
 
-    this.client = new S3Client({ ...this.config });
-    if (!this.supportDirectory()) {
-      return this.client;
-    }
-
-    const input: HeadObjectCommandInput | PutObjectCommandInput = {
-      Bucket: this.bucket,
-      Key: this._getKey("/", true),
-      Body: "",
-    };
+  public async _doGetURL(
+    path: string,
+    isDirectory: boolean,
+    options?: URLOptions
+  ): Promise<string> {
     try {
-      const headCmd = new HeadObjectCommand(input);
-      await this.client.send(headCmd);
-      return this.client;
-    } catch (e: unknown) {
-      const err = this._error("/", e, false);
-      if (err.name !== NotFoundError.name) {
-        throw err;
+      options = { method: "GET", expires: 86400, ...options };
+      const client = await this._getClient();
+      const params = this._createCommand(path, isDirectory);
+      let url: string;
+      switch (options.method) {
+        case "GET": {
+          const cmd = new GetObjectCommand(params);
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        case "PUT":
+        case "POST": {
+          const cmd = new PutObjectCommand(params);
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        case "DELETE": {
+          const cmd = new DeleteObjectCommand(params);
+          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
+          break;
+        }
+        default:
+          throw createError({
+            name: NotSupportedError.name,
+            repository: this.repository,
+            path,
+            e: { message: `"${options.method}" is not supported` }, // eslint-disable-line
+          });
       }
-    }
-    const putCmd = new PutObjectCommand(input);
-    try {
-      await this.client.send(putCmd);
-      return this.client;
+      return url;
     } catch (e) {
-      throw this._error("/", e, true);
+      throw this._error(path, e, false);
     }
-  }
-
-  public _doGetDirectory(path: string): Promise<AbstractDirectory> {
-    return Promise.resolve(new S3Directory(this, path));
-  }
-
-  public _doGetFile(path: string): Promise<AbstractFile> {
-    return Promise.resolve(new S3File(this, path));
-  }
-
-  public _getKey(path: string, isDirectory: boolean) {
-    let key: string;
-    if (!path || path === "/") {
-      key = this.repository;
-    } else {
-      key = joinPaths(this.repository, path, false);
-    }
-    if (isDirectory) {
-      key += "/";
-    }
-    return key;
   }
 
   public async _doHead(path: string, options?: HeadOptions): Promise<Stats> {
@@ -271,45 +245,71 @@ export class S3FileSystem extends AbstractFileSystem {
     }
   }
 
-  public async _doToURL(
-    path: string,
-    isDirectory: boolean,
-    options?: URLOptions
-  ): Promise<string> {
-    try {
-      options = { urlType: "GET", expires: 86400, ...options };
-      const client = await this._getClient();
-      const params = this._createCommand(path, isDirectory);
-      let url: string;
-      switch (options.urlType) {
-        case "GET": {
-          const cmd = new GetObjectCommand(params);
-          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
-          break;
-        }
-        case "PUT":
-        case "POST": {
-          const cmd = new PutObjectCommand(params);
-          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
-          break;
-        }
-        case "DELETE": {
-          const cmd = new DeleteObjectCommand(params);
-          url = await getSignedUrl(client, cmd, { expiresIn: options.expires });
-          break;
-        }
-        default:
-          throw createError({
-            name: NotSupportedError.name,
-            repository: this.repository,
-            path,
-            e: { message: `"${options.urlType}" is not supported` }, // eslint-disable-line
-          });
-      }
-      return url;
-    } catch (e) {
-      throw this._error(path, e, false);
+  public _error(path: string, e: unknown, write: boolean) {
+    let name: string | undefined;
+    if (
+      (e as any).name === "NotFound" || // eslint-disable-line
+      (e as any).$metadata?.httpStatusCode === 404 // eslint-disable-line
+    ) {
+      name = NotFoundError.name;
+    } else if (write) {
+      name = NoModificationAllowedError.name;
+    } else {
+      name = NotReadableError.name;
     }
+    return createError({
+      name,
+      repository: this.repository,
+      path,
+      e: e as any, // eslint-disable-line
+    });
+  }
+
+  public async _getClient() {
+    if (this.client) {
+      return this.client;
+    }
+
+    this.client = new S3Client({ ...this.config });
+    if (!this.supportDirectory()) {
+      return this.client;
+    }
+
+    const input: HeadObjectCommandInput | PutObjectCommandInput = {
+      Bucket: this.bucket,
+      Key: this._getKey("/", true),
+      Body: "",
+    };
+    try {
+      const headCmd = new HeadObjectCommand(input);
+      await this.client.send(headCmd);
+      return this.client;
+    } catch (e: unknown) {
+      const err = this._error("/", e, false);
+      if (err.name !== NotFoundError.name) {
+        throw err;
+      }
+    }
+    const putCmd = new PutObjectCommand(input);
+    try {
+      await this.client.send(putCmd);
+      return this.client;
+    } catch (e) {
+      throw this._error("/", e, true);
+    }
+  }
+
+  public _getKey(path: string, isDirectory: boolean) {
+    let key: string;
+    if (!path || path === "/") {
+      key = this.repository;
+    } else {
+      key = joinPaths(this.repository, path, false);
+    }
+    if (isDirectory) {
+      key += "/";
+    }
+    return key;
   }
 
   public canPatchAccessed(): boolean {
