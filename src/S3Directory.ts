@@ -87,7 +87,7 @@ export class S3Directory extends AbstractDirectory {
       const parts = prefix.split("/");
       const name = parts[parts.length - 2] as string;
       const path = joinPaths(this.path, name);
-      items.push({ path, type: EntryType.Directory }); // eslint-disable-line
+      items.push({ path, type: EntryType.Directory });
     }
     // Files
     for (const content of data.Contents || []) {
@@ -101,7 +101,7 @@ export class S3Directory extends AbstractDirectory {
       const parts = key.split("/");
       const name = parts[parts.length - 1] as string;
       const path = joinPaths(this.path, name);
-      items.push({ path, type: EntryType.File }); // eslint-disable-line
+      items.push({ path, type: EntryType.File });
     }
 
     if (data.IsTruncated) {

@@ -163,8 +163,8 @@ export class S3FileSystem extends AbstractFileSystem {
 
     options = { ...options };
     const type = options.type;
-    const isFile = !type || type === EntryType.File; // eslint-disable-line
-    const isDirectory = !type || type === EntryType.Directory; // eslint-disable-line
+    const isFile = !type || type === EntryType.File;
+    const isDirectory = !type || type === EntryType.Directory;
     let fileHead: Promise<HeadObjectCommandOutput>;
     if (isFile) {
       const fileHeadCmd = new HeadObjectCommand(
@@ -261,7 +261,7 @@ export class S3FileSystem extends AbstractFileSystem {
       name,
       repository: this.repository,
       path,
-      e: e as any, // eslint-disable-line
+      e,
     });
   }
 
